@@ -9,7 +9,11 @@ matrix = [
 print(matrix)
 
 matrix = [[x * 2 for x in row] for row in matrix]
+matrix2 = matrix.copy()
 
+matrix2 = [[x + 40 for x in row] for row in matrix2]
 
 print(matrix)
+
+print(matrix2)
 
