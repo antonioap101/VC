@@ -121,10 +121,6 @@ Convierte las imágenes a RGB y las muestra todas juntas, cada una con su títul
 
 ---
 
-Este código proporciona una forma sistemática de detectar y contar monedas en una serie de imágenes, facilitando la visualización y análisis de los resultados.
-
-Este documento en Markdown explica de manera estructurada y detallada el propósito y funcionamiento de cada parte del script proporcionado.
-
 
 ## TAREA 2: Identificación y valoración de monedas
 Realiza capturas de imágenes con monedas no solapadas y con monedas solapadas. Implementa un sistema que permita identificar una moneda de un euro en la imagen, por ejemplo, a través de un clic de ratón. A continuación, calcula la cantidad total de dinero presente en la imagen. Reflexiona y documenta acerca de los problemas que hayas observado durante este proceso.
@@ -132,5 +128,98 @@ Realiza capturas de imágenes con monedas no solapadas y con monedas solapadas. 
 ## TAREA 3: Evaluación de patrones geométricos y matriz de confusión
 A partir de tres clases de imágenes extraídas de un conjunto de imágenes de mayor tamaño, determina patrones geométricos característicos de cada clase. Evalúa el rendimiento de tu clasificación comparando los resultados con las imágenes completas utilizando una matriz de confusión. Para cada clase, detalla el número de muestras clasificadas correctamente e incorrectamente, desglosando los errores por cada una de las otras dos clases.
 
+### Documentación: Clasificación y Análisis de Microplásticos
+
+
+#### Función: `obtenerCaracteristicas`
+
+```python
+def obtenerCaracteristicas(contorno):
+    area = cv2.contourArea(contorno)
+    if area <= 250:
+        return None  
+
+    perimetro = cv2.arcLength(contorno, True)
+    compacidad = (perimetro ** 2) / area 
+    
+    x, y, w, h = cv2.boundingRect(contorno)
+    relacion_area_contenedor = area / (w * h)
+    
+    if contorno.shape[0] > 5:
+        elipse = cv2.fitEllipse(contorno)
+        relacion_ejes_elipse = elipse[1][0] / elipse[1][1]
+    
+    return area, perimetro, compacidad, relacion_area_contenedor, relacion_ejes_elipse
+```
+Esta función toma un contorno de un objeto en la imagen, calcula varias características geométricas y las devuelve. Si el área del contorno es muy pequeña, se considera ruido y se devuelve `None`.
+
+#### Extracción de Características y Análisis Estadístico
+
+```python
+imagenes = ['TAR.png', 'FRA.png', 'PEL.png']
+caracteristicas_pellets = []
+caracteristicas_alquitran = []
+caracteristicas_fragmentos = []
+
+for img_path in imagenes:
+    # Preprocesamiento y extracción de contornos
+    # ...
+
+    for contorno in contornos:
+        caracteristicas = obtenerCaracteristicas(contorno)
+        if caracteristicas is not None:
+            # Clasificación y almacenamiento de características
+            # ...
+```
+Para cada imagen, se realiza un preprocesamiento, se extraen los contornos y se calculan sus características. Luego, estas características se almacenan en listas según el tipo de microplástico.
+
+#### Análisis Estadístico
+
+```python
+maxPellets = np.max(caracteristicas_pellets, axis=0)
+mediasPellets = np.mean(caracteristicas_pellets, axis=0)
+minPellets = np.min(caracteristicas_pellets, axis=0)
+# Se repite para alquitrán y fragmentos
+```
+Se calculan y muestran las estadísticas (máximo, media, mínimo) de las características para cada tipo de microplástico.
+
+#### Función: `clasificarMicroplasticos`
+
+```python
+def clasificarMicroplasticos(contorno_prediccion):
+    caracteristicas = obtenerCaracteristicas(contorno_prediccion)
+    if caracteristicas is None:
+        return None
+    # Comparación de características y clasificación
+    # ...
+    return 'PEL', 'FRA' o 'TAR'
+```
+Esta función clasifica un contorno de microplástico basándose en sus características geométricas y umbrales predefinidos.
+
+#### Predicción de Microplásticos y Matriz de Confusión
+
+```python
+imagenes_prediccion = ['fragment-03-olympus-10-01-2020.JPG', 'pellet-03-olympus-10-01-2020.JPG', 'tar-03-olympus-10-01-2020.JPG']
+confusion_matrix = np.zeros((3, 3), dtype=int)
+
+for img_path_prediccion in imagenes_prediccion:
+    # Preprocesamiento y extracción de contornos
+    # ...
+
+    for contorno_prediccion in contornos_prediccion:
+        resultado_prediccion = clasificarMicroplasticos(contorno_prediccion)
+        # Actualización de la matriz de confusión
+        # ...
+```
+Para cada imagen de predicción, se extraen los contornos, se clasifican y se actualiza la matriz de confusión según los resultados.
+
+#### Visualización de la Matriz de Confusión
+
+```python
+ax = sns.heatmap(confusion_matrix, annot=True, fmt='d', cbar=False, cmap='flag')
+# Configuración de etiquetas y visualización
+# ...
+```
+Se visualiza la matriz de confusión usando Seaborn para evaluar la precisión de las clasificaciones.
 
 
