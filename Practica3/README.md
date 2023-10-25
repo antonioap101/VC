@@ -242,6 +242,13 @@ print("Dinero Total : " , calcular_total(),
 - **`calcular_total()`:** Se calcula el valor total de las monedas detectadas.
 - **`print`:** Se imprime el valor total junto con una línea divisoria para separar los resultados de diferentes imágenes.
 
+### Dificultades encontradas durante la clasificación
+
+Durante el proceso de clasificación de monedas en nuestro programa, hemos encontrado ciertas dificultades particularmente notables al intentar diferenciar entre algunas monedas específicas. Las monedas de 20 céntimos tienden a confundirse frecuentemente con las de 1 euro, y las de 2 euros con las de 50 céntimos. Aunque en ocasiones el programa logra realizar la clasificación de manera precisa y eficaz, no siempre se obtienen resultados consistentes.
+
+Estas inconsistencias podrían deberse a una variedad de factores que afectan la percepción visual de las monedas en las imágenes. La calidad y resolución de las fotos juegan un papel crucial, ya que imágenes de baja calidad pueden no capturar los detalles necesarios para una clasificación precisa. Asimismo, las condiciones de iluminación al momento de capturar las fotos pueden alterar la apariencia de las monedas. Además, la orientación o ángulo desde el cual se toman las fotos también puede influir, ya que variaciones en la perspectiva pueden llevar a errores en la estimación del tamaño y forma de las monedas. 
+
+Para abordar y potencialmente superar estas limitaciones, un enfoque que se está considerando es la implementación de redes neuronales. Este método de aprendizaje profundo podría proporcionar una herramienta más robusta y precisa para la detección y clasificación de monedas, aprendiendo de grandes cantidades de datos y haciendo predicciones basadas en las características aprendidas. Pensamos que una transición a este enfoque podría mejorar significativamente la precisión de la clasificación de monedas y ofrecer resultados más consistentes y confiables.
 
 ## TAREA 3: Evaluación de patrones geométricos y matriz de confusión
 A partir de tres clases de imágenes extraídas de un conjunto de imágenes de mayor tamaño, determina patrones geométricos característicos de cada clase. Evalúa el rendimiento de tu clasificación comparando los resultados con las imágenes completas utilizando una matriz de confusión. Para cada clase, detalla el número de muestras clasificadas correctamente e incorrectamente, desglosando los errores por cada una de las otras dos clases.
