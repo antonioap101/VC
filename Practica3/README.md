@@ -36,9 +36,9 @@ Este bloque de código define y utiliza una clase `Moneda`, diseñada para repre
 
 Este script de Python está diseñado para detectar y contar monedas en una serie de imágenes utilizando técnicas de visión por computadora con la biblioteca OpenCV.
 
-#### Función `detectar_y_mostrar_monedas`
+#### Función `detectar_y_marcar_monedas`
 
-La función `detectar_y_mostrar_monedas` toma como argumento la ruta a una imagen y realiza los siguientes pasos:
+La función `detectar_y_marcar_monedas` toma como argumento la ruta a una imagen y realiza los siguientes pasos:
 
 #### 1. Carga de la Imagen
 ```python
@@ -98,9 +98,9 @@ Devuelve la imagen con los círculos dibujados y el total de monedas detectadas.
 Se realiza la detección de monedas en varias imágenes y se almacenan los resultados en listas.
 
 ```python
-im1, t1 = detectar_y_mostrar_monedas("Monedas_Solapadas.jpg")
+im1, t1 = detectar_y_marcar_monedas("Monedas_Solapadas.jpg")
 # ... (más llamadas a la función) ...
-im6, t6 = detectar_y_mostrar_monedas("Monedas_mechero2.jpg")
+im6, t6 = detectar_y_marcar_monedas("Monedas_mechero2.jpg")
 
 arr_imagenes = [im1, im2, im3, im4, im5, im6]
 arr_titulos = [t1, t2, t3, t4, t5, t6]
@@ -124,6 +124,124 @@ Convierte las imágenes a RGB y las muestra todas juntas, cada una con su títul
 
 ## TAREA 2: Identificación y valoración de monedas
 Realiza capturas de imágenes con monedas no solapadas y con monedas solapadas. Implementa un sistema que permita identificar una moneda de un euro en la imagen, por ejemplo, a través de un clic de ratón. A continuación, calcula la cantidad total de dinero presente en la imagen. Reflexiona y documenta acerca de los problemas que hayas observado durante este proceso.
+
+### Documentación: Funciones para clasificar monedas y contabilizar dinero
+
+Este script en Python está diseñado para procesar imágenes de monedas, clasificarlas, y calcular el valor total de las monedas presentes en la imagen. 
+
+### Importaciones y Configuración Inicial
+
+Antes de la porción de código proporcionada, se asume que hay importaciones necesarias y configuraciones iniciales, incluyendo la definición de clases como `Moneda` y funciones como `detectar_y_marcar_monedas`.
+
+#### Creación y Reseteo de Contadores de Monedas
+
+```python
+monedas = Moneda.crear_lista_monedas()
+
+def reset_contador_monedas():
+    global monedas_contador
+    monedas_contador = { 
+        "1 Cent": [0, 0.01], 
+        "2 Cent": [0, 0.02], 
+        ...
+    }
+```
+- `monedas`: Una lista de objetos Moneda.
+- `reset_contador_monedas()`: Resetea el contador de monedas a 0 para cada denominación.
+
+#### Funciones de Clasificación y Cálculo
+```python
+def agregar_moneda(nombre_moneda):
+    monedas_contador[nombre_moneda][0] += 1
+
+def calcular_total():
+    ...
+```
+- `agregar_moneda()`: Incrementa el contador de una moneda específica.
+- `calcular_total()`: Calcula el valor total de las monedas contadas.
+- `clasificar_monedas`(): Clasifica las monedas en la imagen basándose en su tamaño.
+
+### Documentación: Clasificación de monedas (PROGRAMA INTERACTIVO)
+
+A continuación, se desglosa la función `procesar_imagen()` en secciones para una mejor comprensión. Esta función contiene el programa interactivo que reconoce las coordenadas del click del usuario sobre la moneda de 1 EURO en la imagen. 
+
+#### 1. Inicialización y Preparación
+```python
+reset_contador_monedas()
+clicked_point = None
+```
+- **`reset_contador_monedas()`:** Esta función se llama para inicializar o reiniciar los contadores de todas las monedas a 0. Esto es importante para asegurarse de que cada vez que procesemos una nueva imagen, los contadores estén en un estado limpio.
+- **`clicked_point`:** Se establece como `None`. Esta variable se usará más adelante para almacenar las coordenadas (x, y) del punto donde el usuario hace clic en la imagen.
+
+#### 2. Definición de la Función de Evento de Clic
+```python
+def click_event(event, x, y, flags, params):
+    nonlocal clicked_point
+    if event == cv2.EVENT_LBUTTONDOWN:
+        clicked_point = (x, y)
+        cv2.destroyAllWindows()
+```
+- **`click_event`:** Esta función se define para manejar eventos de clic en la imagen. Si el evento es un clic izquierdo del ratón (`EVENT_LBUTTONDOWN`), guarda las coordenadas del clic en `clicked_point` y cierra las ventanas de OpenCV. 
+
+#### 3. Carga y Procesamiento de la Imagen
+```python
+imagen = cv2.imread(ruta_imagen)
+assert imagen is not None, "No se pudo cargar la imagen."
+imagen, _ = detectar_y_marcar_monedas(ruta_imagen)
+```
+- **`cv2.imread(ruta_imagen)`:** Intenta cargar la imagen de la ruta especificada.
+- **`assert imagen is not None`:** Asegura que la imagen se haya cargado correctamente. Si no es así, se lanza un error.
+- **`detectar_y_marcar_monedas(ruta_imagen)`:** Asumimos que esta función detecta las monedas en la imagen, las marca y devuelve la imagen procesada. (Esta función no está definida en el fragmento de código proporcionado).
+
+#### 4. Interacción con el Usuario
+```python
+cv2.imshow('image', imagen)
+cv2.setWindowTitle('image', "Haga click sobre la moneda de 1 EURO")
+cv2.setMouseCallback('image', click_event)
+cv2.waitKey(0)
+assert clicked_point is not None, "No se hizo click en ningún punto"
+```
+- **`cv2.imshow()`:** Muestra la imagen al usuario.
+- **`cv2.setWindowTitle()`:** Establece el título de la ventana de la imagen.
+- **`cv2.setMouseCallback()`:** Configura la función `click_event` para manejar los eventos de clic en la imagen.
+- **`cv2.waitKey(0)`:** Espera hasta que el usuario presione una tecla. En este caso, estamos esperando específicamente a que el usuario haga clic en algún lugar de la imagen.
+- **`assert clicked_point is not None`:** Asegura que se haya hecho clic en algún lugar de la imagen. Si no, se lanza un error.
+
+#### 5. Determinación de la Moneda Clickeada
+```python
+x, y = clicked_point
+print(f"El usuario hizo clic en: (X: {x}, Y: {y})")
+for borde in circulos_detectados[0, :]:
+    cx, cy, radio = borde
+    if (x - cx) ** 2 + (y - cy) ** 2 <= radio ** 2:
+        print("El usuario hizo click en una moneda")
+        Moneda.calcular_tamanos(monedas, "1 Euro", radio*2)
+        break
+else:
+    raise Exception("El usuario no hizo clic dentro de ninguna moneda.")
+```
+- **`(x, y) = clicked_point`:** Se obtienen las coordenadas del punto donde el usuario hizo clic.
+- **`print`:** Se imprime la posición del clic.
+- **`for borde in circulos_detectados[0, :]:`:** Itera sobre los círculos detectados (asumimos que `circulos_detectados` contiene esta información).
+- **`if (x - cx) ** 2 + (y - cy) ** 2 <= radio ** 2`:** Si las coordenadas del clic están dentro de uno de los círculos (monedas), se procede a calcular los tamaños de las monedas.
+- **`Moneda.calcular_tamanos()`:** Se calculan los tamaños de las monedas utilizando el radio de la moneda en la que se hizo clic como referencia.
+
+#### 6. Mostrar y Clasificar Monedas
+```python
+Moneda.mostrar_lista_monedas(monedas)
+clasificar_monedas(monedas)
+```
+- **`Moneda.mostrar_lista_monedas(monedas)`:** Se muestra la lista de monedas junto con sus tamaños.
+- **`clasificar_monedas(monedas)`:** Se clasifican las monedas en la imagen.
+
+#### 7. Cálculo y Muestra del Total
+```python
+print("Dinero Total : " , calcular_total(), 
+      end="\n*******************************************\n")
+```
+- **`calcular_total()`:** Se calcula el valor total de las monedas detectadas.
+- **`print`:** Se imprime el valor total junto con una línea divisoria para separar los resultados de diferentes imágenes.
+
 
 ## TAREA 3: Evaluación de patrones geométricos y matriz de confusión
 A partir de tres clases de imágenes extraídas de un conjunto de imágenes de mayor tamaño, determina patrones geométricos característicos de cada clase. Evalúa el rendimiento de tu clasificación comparando los resultados con las imágenes completas utilizando una matriz de confusión. Para cada clase, detalla el número de muestras clasificadas correctamente e incorrectamente, desglosando los errores por cada una de las otras dos clases.
