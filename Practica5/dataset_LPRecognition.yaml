@@ -1,0 +1,12 @@
+
+# ----- LicensePlateLPFiltered ----- 
+# Definición de rutas para los conjuntos de datos
+path: ./dataset_LPRecognition  # Ruta base del conjunto de datos
+
+nc: 1 # number of classes
+names: [ 'License_Plate' ] # class names
+
+train: ./train/  # Subdirectorio para datos de entrenamiento
+val: ./valid/  # Subdirectorio para datos de validación
+test: ./test/  # Subdirectorio para datos de prueba
+
