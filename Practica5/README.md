@@ -2,6 +2,7 @@
 ---
 
 # Detector de Matrículas de Vehículos
+![Esquema del detector de vehiculos](Esquema_detector.png)
 
 ## Descripción
 El sistema desarrollado es un prototipo para la identificación de matrículas de vehículos, ya sea a partir de imágenes o vídeos. El sistema utiliza una combinación de detección de objetos y reconocimiento de texto (OCR) para identificar matrículas de vehículos, particularmente enfocado en matrículas españolas.
