@@ -69,12 +69,12 @@ El sistema desarrollado es un prototipo para la identificación de matrículas d
 
 Este proceso integral asegura que el sistema no solo detecte la presencia de un vehículo, sino que también localice y reconozca con precisión la matrícula, un aspecto crítico para el objetivo del sistema.
 
-### 5. Almacenamiento y Visualización de Imágenes
+## 5. Almacenamiento y Visualización de Imágenes
 #### `Visualizador`
 - Maneja la visualización y almacenamiento de las imágenes procesadas.
 - Métodos `mostrar_y_guardar` y `mostrar_imagen` para visualizar y guardar imágenes con las matrículas detectadas.
 
-### 6. Clase Principal de Detección de Matrículas
+## 6. Clase Principal de Detección de Matrículas
 #### Descripción `DetectorDeMatriculas`
 - Orquesta el proceso de detección de matrículas.
 - Utiliza `DetectorVehiculos` y `ProcesadorMatriculas` para detectar y procesar matrículas en imágenes o vídeos.
@@ -113,6 +113,8 @@ Por supuesto, profundizaremos en la clase `DetectorDeMatriculas`, una pieza cent
 4. **Visualización y Almacenamiento**: Los resultados se muestran en la imagen original y se guardan si es necesario.
 
 La clase `DetectorDeMatriculas` encapsula todo el proceso desde la detección de vehículos hasta la presentación de los resultados, lo que facilita su uso en diferentes escenarios, ya sea procesando imágenes individuales o secuencias de video.
+
+
 ## Uso del Detector de Matrículas
 Para utilizar el detector, se deben crear instancias de las clases de procesamiento y luego llamar al método `detectar` de la clase `DetectorDeMatriculas` con la ruta de la imagen o vídeo a procesar.
 
