@@ -1,356 +1,135 @@
-## Práctica 5. Reconocimiento de matrículas
 
-### Contenidos
+---
 
-[Tarea](#51-tarea)  
-[YOLOv8](#52-yolov8)  
-[OCRs](#53-ocrs)  
-[Entrenando YOLOv8](#54-entrenando-yolov8)
-[Incidencias](#55-incidencias)
+# Detector de Matrículas de Vehículos
+![Esquema del detector de vehiculos](Esquema_detector.png)
 
-<!--[YOLOv7](#52-yolov7)  -->
+## Descripción
+El sistema desarrollado es un prototipo para la identificación de matrículas de vehículos, ya sea a partir de imágenes o vídeos. El sistema utiliza una combinación de detección de objetos y reconocimiento de texto (OCR) para identificar matrículas de vehículos, particularmente enfocado en matrículas españolas.
 
+## Componentes del Sistema
 
-## 5.1 Tarea
+## 1. Detección de Vehículos
+#### `IDetectorVehiculos` (Interfaz Abstracta)
+- Define el método abstracto `detectar`, el cual debe ser implementado por cualquier detector de vehículos.
 
-En esta práctica describo en primer término la tarea:  **El objetivo es desarrollar un prototipo de sistema que identifique la matrícula de un vehículo, bien desde una imagen o desde un vídeo**. Como alternativa, será admisible un escenario donde se combine el uso de detectores de objetos, y reconocimiento de texto.
+#### `DetectorVehiculos` (Implementación)
+- Utiliza YOLOv8 para detectar vehículos en una imagen.
+- Método `detectar`:  Este método toma una imagen como entrada y devuelve dos listas: `boxes` y `class_names`. `boxes` contiene las coordenadas de las cajas delimitadoras de los vehículos detectados, y `class_names` contiene los nombres de las clases correspondientes (por ejemplo, coche, motocicleta, autobús). Utiliza el modelo YOLOv8 para detectar los vehículos y extraer estas informaciones.
 
-Nos centraremos en matrículas españolas, siendo una primera subtarea recopilar o capturar imágenes o vídeos que contengan vehículos con su matrícula visible. Si necesitan cámaras, trípode, etc. hablen conmigo.
+## 2. Procesamiento de Imagen
+#### `IFiltro` (Interfaz Abstracta)
+- Define métodos abstractos `aplicar` y `mostrar` para los filtros de imagen.
 
-Si bien cuentan con libertad a la hora de escoger los módulos que integren en el prototipo, les propongo los siguientes apartados:
+#### Filtros Implementados
+- `FiltroCanny`: Aplica el algoritmo de Canny para la detección de bordes.
+- `FiltroSobel`: Usa el operador Sobel para la detección de bordes.
+- `FiltroUmbralizacion`: Realiza una umbralización para convertir la imagen a blanco y negro basado en un umbral definido.
 
-- un detector de objetos, que permita localizar vehículos
-- un localizador de matrículas
-- y un reconocedor de texto
+## 3. Reconocimiento de Texto (OCR)
+#### `IOCR` (Interfaz Abstracta)
+- Define el método abstracto `localizar_matriculas` para la identificación de texto en las matrículas.
 
-Para la detección, les propongo hacer uso de YOLOv8, para el reconocimiento de texto, les muestro dos OCRs diferentes. De cara a localizar las matrículas, les sugiero dos fases:
+#### `OCR` (Implementación)
+- Utiliza EasyOCR para reconocer texto en una región de interés (ROI).
+- Método `localizar_matriculas`: Este método procesa una región de interés (ROI), generalmente la parte de la imagen donde se espera encontrar la matrícula. Utiliza EasyOCR para extraer texto de esta ROI. Se emplea una expresión regular para capturar y uniformizar los formatos de matrículas, facilitando la identificación de diferentes formatos (por ejemplo, NNNNLLL o LLLNNNN).
 
-- En una primera fase, tras detectar un coche, las zonas probables de la matrícula estarán en su parte inferior, y además se asume que se corresponde a una zona rectangular (su contorno lo es)
-- En una segunda fase, se plantea realizar un entrenamiento de YOLOv8 para detectar el objeto de interés: matrículas
 
+## 4. Procesamiento de Matrículas
+### Descripción `ProcesadorMatriculas` 
+- Procesa la matrícula detectada en un vehículo.
+- Aplica filtros y usa OCR para extraer el texto de la matrícula.
+- Aisla la región de la matrícula y ajusta las coordenadas para su correcta visualización.
 
+### Estructura y Funciones `ProcesadorMatriculas` 
 
+#### Inicialización
 
+- **`__init__(self, ocr, filtros=[])`**: Al inicializar la instancia de `ProcesadorMatriculas`, se le pasa una instancia de `OCR` y una lista de filtros (como `FiltroCanny`, `FiltroSobel`, `FiltroUmbralizacion`). Esto permite que el procesador aplique técnicas específicas de filtrado y OCR a las imágenes.
 
-<!--
-## 5.2 YOLOv7
+#### Métodos Privados
 
-La familia de detectores de YOLO cuenta con mucho tirón en años recientes dada su velicidad y calidad de detección. En esta línea la reciente propuesta de
-[YOLOv7](https://github.com/WongKinYiu/yolov7) declara [batir los registros](https://amalaj7.medium.com/yolov7-now-outperforms-all-known-object-detectors-fd7170e8542d) de versiones previas.
+- **`__aplicar_filtros(self, img)`**: Este método toma una imagen (generalmente una ROI que contiene una matrícula) y la procesa a través de la lista de filtros proporcionada durante la inicialización. Cada filtro se aplica secuencialmente, transformando la imagen para mejorar la eficacia del reconocimiento de texto por OCR. La imagen resultante se devuelve para su posterior procesamiento.
 
-En los dos enlaces previos se incluyen instrucciones de instalación. En mi experiencia para su instalación en Windows, en primer lugar me he colocado en la carpeta en la que quiero descargar y tecleado los siguientes comandos:
+- **`__aislar_matricula(self, vehicle_roi)`**: Dado un ROI de un vehículo, este método intenta aislar aún más la región específica donde se espera encontrar la matrícula. Basado en suposiciones sobre la posición y el tamaño de las matrículas en los vehículos, este método recorta la imagen para centrarse en la región donde es más probable que se encuentre la matrícula. Devuelve esta región junto con las coordenadas relativas dentro del ROI original.
 
-```
-git clone https://github.com/WongKinYiu/yolov7.git
-cd yolov7
-conda create -n yolov7 python=3.9 -y   
-conda activate yolov7
-pip install -r requirements.txt
-```
+- **`__ajustar_y_devolver_datos_matricula(self, matricula, area_matricula, coords_vehiculo, coords_matricula)`**: Este método toma la matrícula reconocida, las coordenadas de la matrícula dentro del ROI de la matrícula, y las coordenadas del vehículo dentro de la imagen original. Ajusta las coordenadas de la matrícula a las coordenadas de la imagen original y devuelve la matrícula junto con estas coordenadas ajustadas.
 
-Una vez finalizados, no he tenido problemas en ejecutar procesando con la CPU. Les muestro un resumen
-de llamadas al demostrados *detect.py* procesando una carpeta de imágenes, un vídeo o directamente desde la cámara web:
+#### Métodos Públicos
 
-```
-#Inferencia
-python detect.py --weights yolov7.pt --conf 0.25 --img-size 640 --source rutaalacarpetaconimágenes\ --view-img --device cpu
+- **`procesar_matricula(self, vehicle_roi, coords_vehiculo, class_name)`**: Este es el método principal de `ProcesadorMatriculas`. Procesa un ROI de vehículo dado, aplicando los filtros de imagen y utilizando OCR para reconocer la matrícula. Si se detecta una matrícula, devuelve la matrícula y su ubicación ajustada dentro de la imagen original. Si no se encuentra ninguna matrícula, devuelve `None`.
 
-#De vídeo almacenado
-python detect.py --weights yolov7.pt --conf 0.25 --img-size 640 --source inference/bird.mp4 --view-img --device cpu
+---
 
-#webcam
-python detect.py --weights yolov7.pt --conf 0.25 --img-size 640 --source 0 --device cpu
+### Flujo de Trabajo
 
-#webcam GPU
-python detect.py --weights yolov7.pt --conf 0.25 --img-size 640 --source 0 --device 0
-```
+1. **Extracción y Filtrado de ROI**: Se extrae el ROI del vehículo de la imagen general y se aplica una serie de filtros para mejorar la claridad y legibilidad de la matrícula.
+2. **Aislamiento de la Matrícula**: Se intenta aislar aún más la región donde se espera encontrar la matrícula dentro del ROI del vehículo.
+3. **Reconocimiento de Matrícula**: Se aplica OCR a la región aislada para extraer el texto de la matrícula.
+4. **Ajuste de Coordenadas**: Se ajustan las coordenadas de la matrícula a las de la imagen original para su correcta visualización y marcado.
 
-Creo que apreciarán que no va muy lento. Como en el PC del despacho tengo una GPU, he intentado configurar el
-*environment* para poder usarla con el demostrador. Sin embargo hasta ahora no he tenido fortuna, pese a tener instalado CUDA y considerar haber seguido la documentación de [pytorch](https://pytorch.org/get-started/locally/),
-para instalar la combinación de
-CUDA, pytorch, torchvision y cudatoolkit con el supuesto comando:
+Este proceso integral asegura que el sistema no solo detecte la presencia de un vehículo, sino que también localice y reconozca con precisión la matrícula, un aspecto crítico para el objetivo del sistema.
 
-```
-conda install pytorch==1.12.1 torchvision==0.13.1 cudatoolkit=11.4 -c pytorch
-```
+## 5. Almacenamiento y Visualización de Imágenes
+#### `Visualizador`
+- Maneja la visualización y almacenamiento de las imágenes procesadas.
+- Métodos `mostrar_y_guardar` y `mostrar_imagen` para visualizar y guardar imágenes con las matrículas detectadas.
 
-Pese a ello, CUDA sigue mostrándose no disponible. Lo he comprobado al teclear
+## 6. Clase Principal de Detección de Matrículas
+#### Descripción `DetectorDeMatriculas`
+- Orquesta el proceso de detección de matrículas.
+- Utiliza `DetectorVehiculos` y `ProcesadorMatriculas` para detectar y procesar matrículas en imágenes o vídeos.
 
-```
-import torch
-print(torch.cuda.is_available())
-```
+Por supuesto, profundizaremos en la clase `DetectorDeMatriculas`, una pieza central en el sistema de detección de matrículas.
 
-Me sigue devolviendo *false*. En cualquier caso, me va con CPU con aceptable tasa de fotogramas por segundo con la webcam, por lo que parece viable u uso aún sin GPU. Ustedes aportarán más visiones y experiencias.
--->
+---
 
-## 5.2 YOLOv8
+### Estructura y Funciones `DetectorDeMatriculas`
 
-<!-- environment VC_P1 e portátil -->
+#### Inicialización
 
-Durante este año 2023, Ultralytics presenta yolov8. Para su instalación en el environment *VC_P1* he seguido los pasos del  [tutorial de instalación de Ultralytics] (https://docs.ultralytics.com/quickstart/#install-ultralytics). No dejes de lado la [documentación](https://docs.ultralytics.com)
+- **`__init__(self, detector_vehiculos, procesador_matriculas)`**: Al inicializar la instancia de `DetectorDeMatriculas`, se le pasan dos componentes esenciales: una instancia de `DetectorVehiculos` para la detección de vehículos y una instancia de `ProcesadorMatriculas` para el procesamiento de las matrículas. Además, se inicializa un `Visualizador` para mostrar y guardar los resultados.
 
-```
-pip install ultralytics
+#### Métodos Privados
 
-```
+- **`__mostrar_matricula(self, img, resultado_matricula)`**: Dado un resultado de matrícula (texto y coordenadas), este método visualiza el texto de la matrícula en la imagen con un fondo blanco para destacar el texto. También dibuja un rectángulo alrededor de la región de la matrícula. Devuelve el texto de la matrícula para su uso posterior.
 
-Ha sido muy poco engorroso en mi experiencia. Una vez instalada, puede ejecutarse desde línea decomandos con algo como:
+- **`__procesar_vehiculo(self, img, box, class_name)`**: Procesa un vehículo individual dentro de la imagen. Utiliza el `box` (coordenadas del vehículo) y `class_name` (tipo de vehículo) para extraer el ROI del vehículo y pasar esta región al `ProcesadorMatriculas`. Si se detecta una matrícula, muestra la matrícula en la imagen y devuelve el texto de la matrícula.
 
+- **`__procesar_fotograma(self, img)`**: Este método procesa un fotograma completo de una imagen o video. Utiliza `DetectorVehiculos` para identificar todos los vehículos en la imagen y luego llama a `__procesar_vehiculo` para cada vehículo detectado. Devuelve la imagen con las matrículas marcadas y una lista de textos de matrículas detectadas.
 
-<!-- yolo detect predict model=yolov8n.pt source="C:/Users/otsed/Desktop/RUNNERS_ILUSOS/Multimedia/Bibs/TGC23_PdH_C0056_resultado.mp4"  -->
-```
-yolo detect predict model=yolov8n.pt source="rutavideo"
-```
+- **`__procesar_video(self, video_path)`** y **`__procesar_imagen(self, img_path)`**: Estos métodos manejan la entrada del sistema, ya sea un video o una imagen. Cargan el video o la imagen, procesan cada fotograma (o la imagen completa) y utilizan el `Visualizador` para mostrar y guardar los resultados.
 
-Con el parámetro model se define el modelo preentrenado a utilizar, los resultados los almacena en una carpeta *runs/detect/predict*. Los distintos parámetros de la ejecución se describen en la documentación del modo [*predict*](https://docs.ultralytics.com/modes/predict/). El modelo escogido detecta contenedores, para la segmentación semántica sugerir por ejemplo el modelo *yolov8n-seg.pt*, con un resultado similar al de la imagen.
+#### Método Público
 
-```
-yolo detect predict model=yolov8n-seg.pt source="rutavideo"
-```
-<!-- yolo detect predict model=yolov8n-seg.pt source="C:/Users/otsed/Desktop/RUNNERS_ILUSOS/Multimedia/Bibs/TGC23_PdH_C0056_resultado.mp4"  -->
+- **`detectar(self, path, es_video=False)`**: Este es el método principal que se llama para iniciar el proceso de detección. Dependiendo de si `es_video` es `True` o `False`, llama a `__procesar_video` o `__procesar_imagen`, respectivamente.
 
-![Segmentación](images/yolov8-seg.png)  
-*Resultado del modelo yolov8n-seg.pt*
+---
 
-Otro interesante modelo ya presente es el detector de pose, que obtiene un resultado como el de la imagen
+### Flujo de Trabajo y Uso
 
+1. **Inicialización**: Se crean instancias de las clases necesarias para la detección de vehículos, procesamiento de matrículas y visualización.
+2. **Detección de Vehículos**: Para cada imagen o fotograma de video, se detectan los vehículos utilizando `DetectorVehiculos`.
+3. **Procesamiento de Matrículas**: Cada vehículo detectado se procesa para extraer y reconocer la matrícula.
+4. **Visualización y Almacenamiento**: Los resultados se muestran en la imagen original y se guardan si es necesario.
 
-```
-yolo pose predict model=yolov8n-pose.pt source="rutavideo"
-```
+La clase `DetectorDeMatriculas` encapsula todo el proceso desde la detección de vehículos hasta la presentación de los resultados, lo que facilita su uso en diferentes escenarios, ya sea procesando imágenes individuales o secuencias de video.
 
-![Segmentación](images/yolov8-pose.png)  
-*Resultado del modelo yolov8n-pose.pt*
 
-<!-- yolo pose predict model=yolov8n-pose.pt source="C:/Users/otsed/Desktop/RUNNERS_ILUSOS/Multimedia/Bibs/TGC23_PdH_C0056_resultado.mp4"  -->
+## Uso del Detector de Matrículas
+Para utilizar el detector, se deben crear instancias de las clases de procesamiento y luego llamar al método `detectar` de la clase `DetectorDeMatriculas` con la ruta de la imagen o vídeo a procesar.
 
-<!--A este segundo también le añadí la opción "device" para decirle qué tarjetas tiene que usar.-->
-
-En las primeras celdas del cuaderno ejemplo, *VC_P5.ipynb*, se incluye un ejemplo de procesamiento y dibujado de las cajas contenedoras haciendo uso del modelo *yolov8n.pt* desde código python. Se presentan todas las clases sin realizar ningún tipo de filtrado. También se incluye una celda preparada para procesar un vídeo en disco pudiendo escoger el modelo.
-
-
-
-
-<!--
-
-https://stackoverflow.com/questions/75714505/how-to-only-detect-person-class-from-yolov8
-
-
-
-
-[YOLO-NAS](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/YoloNASQuickstart.md) para mejorar con objetos pequeños y pocos recursos ...
-
-
--->
-
-### 5.3. OCRs
-
-Como reconocedores de caracteres, les propongo dos opciones disponibles.
-Para ambos se incluyen demostradores mínimos en el cuaderno proporcionado esta semana.
-<!-- Al ser un nuevo *environment* no olvidar  que es necesario instalar el paquete para ejecutar cuadernos, desde consola-->
-
-
-Por un lado, el conocido [Tesseract](https://github.com/tesseract-ocr/tesseract), para el que desde python será necesario un wrapper, además de instalarlo previamente.
-La documentación de [Tesseract](https://tesseract-ocr.github.io/tessdoc/Installation.html) dispone de información para su instalación en distintos sistemas operativos
-Para entorno Windows, siguiendo las instrucciones de la mencionada documentación, me he descargado los binarios desde el repositorio para tal fin de la [Universidad Manheim](https://github.com/UB-Mannheim/tesseract/wiki). Al instalar he indicado que incluya datos de otros lenguajes, en mi caso español. Además he anotado la carpeta donde se instala.
-
-El *wrapper* es [pytesseract](https://pypi.org/project/pytesseract/) se instala cómodamente en el *environment* creado en el paso anterior con:
-
-```
-pip install pytesseract
+### Ejemplo de Uso con Imágenes
+```python
+detector.detectar('./images/image1.png')
 ```
 
-
-Por otro lado, [easyOCR](https://github.com/JaidedAI/EasyOCR) que ofrece un cómodo soporte para más de 80 lenguas, cuya instalación es aún más simple, basta con:
-
-```
-pip install easyocr
+### Ejemplo de Uso con Vídeo
+```python
+detector.detectar('./videos/video1.mp4', es_video=True)
 ```
 
+Se adjuntan algunas de las imagenes utilizadas para las pruebas. Por otro lado, la prueba de vídeo se ha realizado con el video obtenido por una "dashcam" mientras se conduce un coche. 
 
 
-***
-
-### 5.4 Entrenando YOLOv8
-
-
-En la sesión de la semana anterior, se introducía el uso de YOLOv8 como detector, esta práctica aborda el entrenamiento personalizado para detectar objetos de nuestro interés, a partir de cajas contenedoras.
-
-#### Anotación de imágenes
-
-Son dos los elementos necesarios, por un lado obtener imágenes con muestras del objeto de interés, y por otro lado, herramientas de anotación para posteriormente proporcionarlas en el entrenamiento.
-
-La recopilación de imágenes puede realizarse de distintas maneras
-
-- accediendo a algún conjunto de datos ya existente
-- creando el conjunto de datos
-
-En el segundo caso será necesario recopilar imágenes, pudiendo ser de forma manual, o utilizando utilidades que permitan descargar imágenes realizando búsquedas. Un ejemplo de utilidad, es la proporcionada por [google_images_download](https://pypi.org/project/google_images_download/) que facilita la descarga de un número de imágenes obtenidas realizando búsquedas a través de google.
-
-Tras esta recopilación será necesario en primer término limpiar y filtrar las imágenes, para posteriormente anotar las muestras de nuestro objeto de interés. Asumo una anotación en base a contenedores rectangulares, si bien las herramientas de anotación permiten más variantes.
-
-Si bien existen numerosas herramientas de anotación, las más frecuentes en el grupo han sido:
-
-- [VoTT (Visual Object Tagging Tool)](https://github.com/microsoft/VoTT)
-- [labelme](https://github.com/wkentaro/labelme)
-
-
-La primera de ellas ya no está mantenida. La segunda puede instalarse a través de anaconda, permitiendo distintos tipos de anotación. Para nuestro propósito optaremos por un esquema rectangular. Tras almacenar las anotaciones puede ser necesaria alguna adaptación dependiendo de la red que se use para entrenar.
-
-```
-conda create --name=labelme python=3.9
-conda activate labelme
-pip install labelme
-```
-
-Una vez instalado *labelme*, el proceso desde *Anaconda Prompt*:
-
-- Teclear *labelme*
-- Una vez abierta la interfaz, seleccionar la carpeta con imágenes a anotar
-- En nuestro caso, que anotaremos zonas rectangulares, escoger *Edit->Create Rectangle*
-
-La anotación genera un *json* para cada imagen. Sugerir en cualquier caso echar un vistazo a la [documentación sobre el uso](https://github.com/wkentaro/labelme#usage).
-
-No es obligatorio utilizar esta herramienta en concreto, hay numerosas y podrás encontrar comparativas.
-Existen también numerosos servicios en la nube, como por ejemplo [Roboflow](https://app.roboflow.com/login) que requieren crearse una cuenta para acceder a las utilidades, [CVAT](https://www.cvat.ai) o [TigTag](https://www.tictag.io) que permite anotar desde el móvil. Te invito a explorar y escoger la herramienta que más te atraiga para el proceso de anotación.
-
-Lo importante es que sea cómoda y fácil de usar, y se agradece que permita exportar a varios formatos, incluyendo YOLO, que es el que será necesario para realizar el entrenamiento con YOLOv8.
-
-<!---Momentos en trabajo de Nayar sobre Binary images https://cave.cs.columbia.edu/Statics/monographs/Binary%20Images%20FPCV-1-3.pdf -->
-
-<!-- Guías CVAT
-https://www.simonwenkel.com/lists/software/list-of-annotation-tools-for-machine-learning-research.html
-https://www.v7labs.com/blog/cvat-guide
--->
-
-
-
-#### Entrenamiento
-
-Tras utilizar uno o varios modelos preentrenados de YOLOv8 para detección, el propósito de este apartado es aportar las pautas para entrenar un detector basado en YOLOv8 del objeto u objetos que nos sea de interés.
-
-Una vez recopiladas las imágenes y realizadas las anotaciones, antes de proceder a entrenar con YOLOv8, es necesario disponer las imágenes de determinada forma, y posteriormente especificar las rutas en la llamada. La siguiente imagen
-muestra la estructura de directorios creadas para un conjunto de datos denominado *TGCRBNW*.
-
-![Directorios](images/dirs.png)
-
-Contiene tres subcarpetas:
-
-- *test*
-- *train*
-- *val*
-
-Cada una de ellas a su vez contiene dos subcarpetas:
-
-- *images*
-- *labels*
-
-La primera de ellas contiene las imágenes que se han anotado, mientras que la segunda carpeta contiene para cada imagen anotada su archivo *.txt* homónimo con las correspondientes anotaciones de la imagen. Recordar que el formato esperado por YOLOv8 debe ser algo como:
-
-```
-<object-class-id> <x> <y> <width> <height>
-```
-
-Los datos de cada línea se refieren a:
-
-- *object-class-id*: identificador numérico de la clase del objeto anotado
-- *x*: coordenada *x* del centro de la ventana
-- *y*: coordenada *y* del centro de la ventana
-- *width*: ancho del contenedor
-- *height*: alto del contenedor
-
-Las coordenadas del centro y dimensiones del contenedor estarán normalizadas, es decir, divididas por las dimensiones de la imagen.
-
-Para distribuir las imágenes en las tres subcarpetas, debemos llevar a cabo un reparto. Lo habitual es realizar una división aleatoria, donde por ejemplo podemos hacer uso de un 80% para entrenamiento y validación, y un 20% para test. Dentro del primer grupo, puedes optar de nuevo a una división 80/20 o 90/10.
-
-Una vez conformada la estructura de directorios y distribuidas las imágenes, he procedido a crear, en mi caso dentro de la carpeta *data*, un archivo *.yaml* que permite especificar las rutas de las imágenes que se proporcionan para entrenamiento, validación y test, además del número de clases a considerar, y sus nombres. En mi caso con una única clase:
-
-```
-# TGCRBNW
-
-# train and val data as 1) directory: path/images/, 2) file: path/images.txt, or 3) list: [path1/images/, path2/images/]
-train: C:/Users/otsed/Desktop/RUNNERS/Datasets/TGC_RBNW/train/
-val: C:/Users/otsed/Desktop/RUNNERS/Datasets/TGC_RBNW/val/  
-test: C:/Users/otsed/Desktop/RUNNERS/Datasets/TGC_RBNW/test/  
-
-# number of classes
-nc: 1
-
-# class names
-names: [ 'bib' ]
-```
-
-A partir de este punto es posible lanzar el entrenamiento. Un par de variantes especificando o no el número de épocas, indicando el tamaño de las imágenes a considerar (por defecto 640), y los pesos tomados como punto de partida:
-
-
-El código para entrenar YOLOv8 desde CPU:
-
-```
-yolo detect train model=yolov8n.pt data=data/miarchivo.yml imgsz=416 batch=4 device=CPU epochs=40
-```
-
-Si disponemos de GPU:
-
-```
-yolo detect train model=yolov8n.pt data=data/miarchivo.yml imgsz=416 batch=4 device=0[,1,2,3] epochs=40
-```
-
-Para entrenar con GPU, puede serte útil acceder a las instrucciones para [instalar pytorch local](https://pytorch.org/get-started/locally/) de cara a conocer el comando necesario para instalarlo en tu *environment*. Chequea la versión de CUDA en tu equipo, puede que tengas que buscar en el enlace para versiones previas de pytorch.
-
-
-<!--En mi equipo de despacho, donde ya tenía CUDA presente
-
-```
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
-
-No fue
-
-conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvidia
-
-se queja de openssl
-
-Con yolov7 usé
-conda install pytorch==1.12.1 torchvision==0.13.1 torchaudio==0.12.1 cudatoolkit=11.6 -c pytorch -c conda-forge
-
-```
-
-
- Error OpenSSL https://github.com/conda/conda/issues/11982
-go to location where you've install anaconda anaconda3>Library>bin. search and copy following dll files
-
-libcrypto-1_1-x64.dll
-libssl-1_1-x64.dll
-
-and paste to anaconda3>DLLs.
-
-then restart your pc.
-
-issue will get resolved. This will solve the issue. Thank you Mahesh2519
--->
-
-El entrenamiento puede llevarse a cabo en CPU, siendo sensiblemente más lento que si contamos con GPU. También es posible hacer uso de Colab ( [tutorial para ejecutar en Colab](https://machinelearningprojects.net/train-yolov7-on-the-custom-dataset/) ).
-Finalizado el entreno localmente, en la carpeta *runs/detect/trainX* se encuentra el resultado. Ya estarías en disposición de probarlo, desde línea de comando o en tu propio código.
-
-
-## 5.5 Incidencias
-
-Hemos observado problemas al instalar YOLOv8 y easyOCR, puedes llegar a un punto en que la instalación de opencv no vaya bien. Lo hemos conseguido resolver con:
-
-```
-pip uninstall opencv-python
-pip install opencv-python --upgrade
-```
-
-<!-- en el despacho  
-
-
-
-
-Llegado a este punto:
-¡¡A jugarrrr!!-->
-
-
-
-***
-Bajo licencia de Creative Commons Reconocimiento - No Comercial 4.0 Internacional
+---
