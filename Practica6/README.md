@@ -1,130 +1,116 @@
-## Práctica 6. Análisis facial
+# Práctica 6. Análisis facial
 
-### Contenidos
+## Propuesta 1: Juego de razas
 
-[Conjunto de datos](#conjunto-de-datos)  
-[Autocaras](#autocaras)  
-[Descriptores locales](#descriptores-locales)  
-[deepface](#deepface)  
-[Tarea](#tarea)
+### Descripción General
 
+El Juego de Razas consiste en una aplicación interactiva que utiliza el análisis de rostros con DeepFace y ViolaJones para superponer diferentes tipos de sombreros según la raza detectada en las caras de las personas. El juego ofrece una interfaz dinámica que se adapta a diferentes resoluciones de pantalla y proporciona varias funcionalidades como la elección de sombreros y la detección automática basada en rasgos raciales.
 
-## Conjunto de datos
+### Componentes del Juego
 
-Como conjunto de datos para varias de las demos descritas a continuación se utiliza **DatabaseGender59x65**, que puede descargarse desde el campus virtual. Tras descomprimir, observarás que contiene dos
-carpetas, dado que se asume un problema de dos clases.
+Los componentes del juego se han separado en diferentes clases para mantener una mejor modularidad del juego y que este sea más sencillo de comprender, mantener y modificar. A continuación se detalla el funcionamiento de cada uno de los componentes.
 
-Para las primeras demos, será necesario hacer uso del *environment* utilizado en las primeras prácticas, mientras que para aquellas que hacen uso de deepface, es necesario utilizar un *environment* con deepface instalado.
+#### Clases para Gestionar la Interfaz
 
+Estas clases se encargan de gestionar los componentes de la interfaz del juego. Se definen clases para poder utilizar botones dinámicos, es decir, botones que se adapten a la resolución de la fuente de vídeo pasada como parámetro y utilizada para analizar. También permite superponer los diseños de interfaz al video procesado por el juego.
 
-## Autocaras
+#### `DynamicButton`
 
-Antes de comenzar, si quieres trabajar con un *environment* desde cero:
+- **Descripción**: Esta clase representa un botón interactivo cuyo tamaño y posición se ajustan dinámicamente según la resolución de la pantalla.
+- **Constructor**:
+  - `x1, y1`: Coordenadas iniciales del botón en una resolución de referencia.
+  - `width, height`: Dimensiones del botón en la resolución de referencia.
+  - `res_width, res_height`: Resolución actual de la pantalla.
+- **Métodos**:
+  - `get_coordinates()`: Devuelve las coordenadas ajustadas del botón según la resolución actual.
 
-```
-conda create --name VC_P6 python=3.11.5
-conda activate VC_P6
-pip install opencv-python
-pip install matplotlib
-pip install scikit-learn
-pip install scikit-image
-```
+#### `DynamicButtons`
 
-La primera de las demos está contenida en el archivo *VC_P6_eigenfaces* que a modo de resumen realiza las siguientes acciones:
+- **Descripción**: Gestiona un conjunto de `DynamicButton`, agrupándolos en diferentes categorías como MENU, DETECTAR, ELEGIR, y CAMBIAR_SOMBRERO.
+- **Constructor**:
+  - `res_width, res_height`: Resolución actual de la pantalla para ajustar los botones.
 
-- Antes de nada, modifica la ruta especificada en el código en la variable *folder* para adaptarla a tu equipo
-- Carga el conjunto de datos sin aplicar ningún tipo de recorte, cada imagen se recompone como vector, obteniendo la matriz *X* con todas las muestras, y la matriz *Y* con sus etiquetas numéricas
-- Visualiza la primera muestra de cada clase y estadísticas del conjunto de datos
-- De forma aleatoria se divide en conjunto de datos en entrenamiento y test usando *train_test_split*, es un *hold-out* 70/30.
-- A continuación se realizan varios experimentos de clasificación:
-  - Utiliza el valor de los píxeles como vector de características, clasificando por mayoría entre los k vecinos más cercanos (k=5 en el código)
-  - Realiza el análisis de componentes principales del conjunto de entrenamiento, tomando las 150 primeras como vector de características, probando dos esquemas de clasificación:
-    - por mayoría entre los k vecinos más cercanos (k=5 en el código)
-    - utilizando una máquina de vectores soporte (SVM)
-  - Realiza el análisis de componentes principales del conjunto de entrenamiento, tomando las componentes que cubran el 95%de la varianza del conjunto. De nuevo prueba dos esquemas de clasificación:
-    - por mayoría entre los k vecinos más cercanos (k=5 en el código)
-    - utilizando una máquina de vectores soporte (SVM)
+#### `GameInterface`
 
+- **Descripción**: Encargada de gestionar las interfaces gráficas del juego, como los fondos de pantalla para diferentes estados del juego.
+- **Constructor**:
+  - `res_width, res_height`: Resolución actual de la pantalla.
+- **Métodos**:
+  - `cargar_y_redimensionar(ruta_imagen)`: Carga y redimensiona una imagen de interfaz según la resolución actual.
+  - `add_interface(frame, interface)`: Superpone una interfaz gráfica en el frame de video.
 
-![PCA](images/pca.png)  
-*Caras principales*
+#### Clase para Gestionar el Estado del Juego
 
-Tras la ejecución, para todas las variantes se muestran métricas y matriz de confusión. ¿Qué esquema consideras que es mejor?
+#### `GameState`
 
-¿Qué ocurriría si se realiza el mismo proceso sobre una zona recortada de la imagen, por ejemplo te centras en la zona ocular. Comentar que las imágenes tienen un tamaño 59x65, habiendo sido normalizadas para que los ojos anotados/detectados estén en las posiciones (16,17) y (42,17).
+- **Descripción**: Mantiene el estado actual del juego y el sombrero seleccionado.
+- **Métodos**:
+  - `change_state(new_state)`: Cambia el estado actual del juego.
+  - `set_selected_hat(hat)`: Establece el sombrero seleccionado.
 
+### Ejemplo de Uso
 
-## Descriptores locales
+Las clases `DynamicButtons`, `GameInterface`, y `GameState` se pueden instanciar y utilizar de la siguiente manera:
 
-El segundo demostrador *VC_P6_eigenfaces_handcrafted_kfold* diseña un experimento kfold, comparando el uso de autocaras con un par de configuraciones basadas en LBP y HOG. 
-A modo de resumen realiza las siguientes acciones:
+```python
+# Instanciación de las clases
+dynamic_buttons = DynamicButtons(width, height)  
+game_interface = GameInterface(1280, 720)
+game_state = GameState()
 
-- De nuevo, recuerda en primer lugar modificar la ruta especificada en el código en la variable *folder* para adaptarla a tu equipo
-- Carga el conjunto de datos sin aplicar ningún tipo de recorte, cada imagen se recompone como vector, obteniendo la matriz *X* con todas las muestras, y la matriz *Y* con sus etiquetas numéricas
-- Se visualizan varias muestras de cada clase y estadísticas del conjunto de datos
-- De forma aleatoria se divide en conjunto de datos en varios subconjuntos usando *StratifiedKFold* para diseñar el kfold
-- Realiza el análisis de componentes principales del conjunto de entrenamiento, tomando las componentes que cubran el 95%de la varianza del conjunto
-- Posteriormente aplica los siguientes esquemas de clasificación:
-  - Clasifica con píxeles como características y KNN
-  - Clasifica con componentes PCA como características con KNN
-  - Clasifica con componentes PCA como características con SVM
-  - Clasifica con LBP como características con SVM
-  - Clasifica con HOG como características con SVM
-  - Clasificador aplicado (*stacked*) combinando los respectivos clasificadores SVM
-
-Además de la zona de interés del rostro, como en el ejemplo de la sección previa,, la división en celdas para el cálculo de los histogramas HOG y LBP es configurable. Es por ello posible mejorar tasas de rendimiento, en particular si mejoramos los datos proporcionados al clasificador apilado.
-
-¿Te aventuras a probar otras combinaciones de región de interés y descriptores locales?
-
-
-## deepface
-
-Recuerdo los pasos que necesité en la práctica 4 para instalar [deepface](https://github.com/serengil/deepface):
-
-```
-conda create --name deepface python==3.9
-conda activate deepface
-
-pip install deepface
+# Cambiar a estado "DETECTAR"
+game_state.change_state("DETECTAR")
 ```
 
-Para estos ejemplos es probable que necesites instalar:
+Estas clases facilitan la gestión y adaptabilidad de la interfaz gráfica del juego, así como el control del estado del juego en función de las interacciones del usuario.
 
+#### Clases para Gestionar los Sombreros
+
+Se definen dos clases, HatManager y HatOverlayManager. La primera de ellas gestiona los distintos sombreros disponibles, mientras que la segunda se encarga de posicionar el sombrero correspondiente sobre la cara detectada.
+
+#### Descripción de Clases
+
+##### `HatManager`
+
+- **Descripción**: Esta clase gestiona los diferentes tipos de sombreros que se pueden superponer en las caras detectadas en el juego. Cada sombrero está asociado a una raza específica.
+- **Constructor**: No requiere parámetros específicos. Inicializa un diccionario de sombreros basado en la raza.
+- **Métodos**:
+  - `load_hat(path)`: Carga un sombrero desde un archivo de imagen.
+  - `get_hat(hat_name)`: Devuelve el sombrero asociado al nombre de la raza proporcionado. Si no se encuentra, devuelve el sombrero por defecto.
+  - `show_available_hats()`: Imprime los nombres y las dimensiones de los sombreros disponibles.
+
+##### `HatOverlayManager`
+
+- **Descripción**: Se encarga de analizar las caras en los frames de video y superponer los sombreros correspondientes basándose en la raza detectada.
+- **Constructor**:
+  - `hat_manager`: Una instancia de `HatManager` para gestionar los sombreros.
+  - `min_confidence`: Umbral mínimo de confianza para considerar válida una detección de cara.
+  - `analysis_frequency`: Frecuencia con la que se realiza el análisis de rostros en los frames.
+- **Métodos**:
+  - `analyze_and_overlay(frame)`: Analiza las caras en el frame y superpone los sombreros correspondientes.
+  - `overlay_hat(frame, hat, x, y, w, h)`: Superpone un sombrero en un frame en las coordenadas especificadas.
+  - `choose_and_overlay(frame, selected_hat)`: Superpone un sombrero seleccionado en todas las caras detectadas en el frame.
+
+#### Ejemplo de Uso
+
+Las clases `HatManager` y `HatOverlayManager` se pueden instanciar y utilizar de la siguiente manera:
+
+```python
+# Instanciación de las clases
+hat_manager = HatManager()
+hat_overlay_manager = HatOverlayManager(hat_manager)
+
+# Procesar un frame para superponer gorros basados en la raza detectada
+frame = ... # Obtener el frame del video
+processed_frame = hat_overlay_manager.analyze_and_overlay(frame)
+
+# Procesar un frame para superponer un gorro seleccionado en todas las caras
+selected_hat = 'white' # Nombre del gorro seleccionado
+processed_frame = hat_overlay_manager.choose_and_overlay(frame, selected_hat)
 ```
-pip install scikit-learn
-pip install scipy
-```
 
-La demo contenida en *VC_P6_deepface_kfold* es similar a la del apartado previo, plantea un experimento kfold, tomando en este caso como características los *embeddings* proporcionados por uno de los modelos presentes en deepface. En concreto he tomado FaceNet, si bien el código está preparado para escoger otro modelo antes de realizar la carga de datos. Al cargar los datos se obtiene el correspondiente *embedding* que se almacena en *X*, siendo por ello el proceso de carga más lento. En la primera ejecución se descargará el modelo si fuera necesario, siendo almacenado en la carpeta *.deepface*. Tenlo presente si vas justo de disco.
+Estas clases proporcionan una forma eficiente de gestionar y aplicar diferentes sombreros en las caras detectadas, enriqueciendo la interactividad y la experiencia visual del juego.
 
-Posteriormente se lanza el experimento kfold. ¿Qué te parecen los resultados?
-¿Qué ocurre con otros modelos?
-
-En la cuarta práctica se mostró la posibilidad de usar deepface para detectar caras, también dispone de utilidades para reconocimiento, descripción y estimación de la expresión facial, que puedes ver en su web.
-
-Sin embargo, quiero mostrar una demo, *Demo_BuscaParecidos*,  que busca parecidos en un conjunto de caras a partir de distancias obtenidas con *embeddings* de FaceNet. Advierto que es una demo compuesta en ratos libres durante sesiones de actividades de divulgación bajo alguna carpa en una plaza, por lo que pueden existir errores.
-Un proceso similar es el que está detrás de [Art selfie](https://artsandculture.google.com/camera/selfie).
-
-La biblioteca deepface cuenta con utilizadas para verificación y reconocimiento de identidad. En ambos casos se le proporciona dos parámetros:
-
-- Para verificar, se proporcionan dos imágenes
-- Para reconocer una imagen y la ruta  a la carpeta con la base de datos de identidades registradas.
-
-En el último ejemplo, se ilustra brevemente la utilidad de descripción facial a través de la función *analyze* que permite estimar:
-
-- identidad
-- sexo
-- raza
-- emoción
-
-En los dos últimos casos proporciona probabilidades de cada clase considerada, además de la ganadora. Un pequeño ejemplo es el incluido en *VC_P6_deepface_analyze*
+## Propuesta 2: Reconocimiento facial para identificación de personas
 
 
-## Tarea
-
-Se sugiere tomar como punto de partida las utilidades ofrecidas por deepface, y proponer *reacciones* a partir de la información obtenida. Además de la demo mostrada de parecidos,
-recomendar la lectura de [Working with Faces](https://kcimc.medium.com/working-with-faces-e63a86391a93) por [Kyle McDonald](https://kylemcdonald.net), y ver alguna de suspropuestas como [Sharing Faces](https://vimeo.com/96549043).
-
-
-***
-Bajo licencia de Creative Commons Reconocimiento - No Comercial 4.0 Internacional
