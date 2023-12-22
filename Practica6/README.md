@@ -149,6 +149,7 @@ Esta clase proporciona una estructura modular y flexible para el juego, permitie
 
 El script que has proporcionado es para un sistema de reconocimiento facial que utiliza machine learning para identificar a personas. El proceso se divide en tres etapas principales: captura de imágenes, entrenamiento del modelo y reconocimiento en tiempo real. A continuación, se detallan las diferentes partes del script:
 
+## Funciones
 ### 1. Captura de Imágenes (`image_capture`)
 
 Esta función captura imágenes de rostros desde una cámara web y las almacena en un directorio específico. Cada imagen capturada se asocia con un nombre de clase o etiqueta, lo que permite recopilar datos para diferentes personas.
@@ -185,10 +186,6 @@ Esta función utiliza el modelo entrenado y PCA para identificar rostros en tiem
   - Detecta rostros utilizando el clasificador Haar Cascade.
   - Aplica PCA y el modelo SVM para identificar el rostro.
   - Muestra el resultado en la ventana de video.
-
-- Este script proporciona un enfoque sencillo pero efectivo para el reconocimiento facial, utilizando técnicas de aprendizaje automático, aunque para un correcto funcionamiento, es crucial tener una buena cantidad de imágenes de cada persona para entrenar eficazmente el modelo.El rendimiento y precisión del modelo pueden variar según la calidad de las imágenes y la cantidad de datos disponibles para cada clase.
-
-Este fragmento de código describe un flujo de trabajo completo para capturar imágenes de un sujeto, entrenar un modelo de reconocimiento facial y luego utilizar ese modelo para el reconocimiento facial en tiempo real. El proceso se divide en tres pasos principales, explicados a continuación:
 
 ## Proceso
 ### 4. Capturar Imágenes para el Dataset
@@ -232,5 +229,5 @@ real_time_recognition(classifier, pca)
   - Aplica PCA y el modelo SVM para identificar los rostros detectados.
   - Muestra el nombre del sujeto reconocido en la ventana de video.
 
-### Nota Final
-Este flujo de trabajo es efectivo para la creación de un sistema de reconocimiento facial personalizado. Es importante tener una buena cantidad de imágenes para cada sujeto durante la fase de captura de imágenes para mejorar la precisión del modelo. La efectividad del reconocimiento en tiempo real dependerá de la calidad y diversidad de las imágenes utilizadas para el entrenamiento.
+
+Esta propuesta proporciona un enfoque sencillo pero efectivo para el reconocimiento facial, utilizando técnicas de aprendizaje automático, aunque para un correcto funcionamiento, es crucial tener una buena cantidad de imágenes de cada persona para entrenar eficazmente el modelo.El rendimiento y precisión del modelo pueden variar según la calidad de las imágenes y la cantidad de datos disponibles para cada clase.
