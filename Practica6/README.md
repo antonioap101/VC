@@ -109,7 +109,40 @@ selected_hat = 'white' # Nombre del gorro seleccionado
 processed_frame = hat_overlay_manager.choose_and_overlay(frame, selected_hat)
 ```
 
-Estas clases proporcionan una forma eficiente de gestionar y aplicar diferentes sombreros en las caras detectadas, enriqueciendo la interactividad y la experiencia visual del juego.
+### `Game`: Clase Principal de Gestión del Juego
+
+La clase `Game` es el núcleo del juego, que integra todos los componentes y maneja el flujo general. Es responsable de configurar y ejecutar el bucle principal del juego, procesar entradas de usuario y actualizar la interfaz gráfica en consecuencia.
+
+#### Constructor:
+
+- **Parámetros**:
+  - `source_video`: Ruta al archivo de video o índice de la cámara web que se utilizará como fuente de video.
+  - `game_interface` (opcional): Una instancia predefinida de `GameInterface` para manejar la interfaz gráfica.
+  - `dynamic_buttons` (opcional): Una instancia predefinida de `DynamicButtons` para manejar los botones dinámicos.
+  - `overlay_manager` (opcional): Una instancia predefinida de `HatOverlayManager` para la superposición de gorros.
+
+#### Métodos Principales:
+
+- `start()`: Inicia el bucle principal del juego. Captura frames de video, gestiona los estados del juego y actualiza la interfaz gráfica.
+- `exit()`: Establece el estado del juego en "SALIR", lo que causa que el bucle principal del juego finalice.
+- `manage_game_state(frame)`: Gestiona los diferentes estados del juego ("MENU", "DETECTAR", "ELEGIR") y llama a las funciones correspondientes para actualizar la interfaz gráfica y la superposición de gorros.
+- `integrate_interface(frame, pantalla, botones)`: Superpone la interfaz gráfica en el frame y dibuja los botones correspondientes.
+- `clic_mouse(event, x, y, flags, param)`: Maneja los eventos de clic del ratón y actualiza el estado del juego o el gorro seleccionado.
+
+#### Ejemplo de Uso:
+
+```python
+# Para usar la cámara por defecto:
+game = Game(0)
+game.start()
+
+# Para usar un archivo de vídeo personalizado con overlay manager personalizado:
+ov_manager_2 = HatOverlayManager(hat_manager=HatManager(), min_confidence=3, analysis_frequency=10)
+game = Game('./video_test_5.mp4', overlay_manager=ov_manager_2)
+game.start()
+```
+
+Esta clase proporciona una estructura modular y flexible para el juego, permitiendo una fácil personalización y ampliación de su funcionalidad. La integración de diferentes componentes, como la interfaz gráfica, la gestión de estados y la superposición de gorros, facilita la comprensión y el mantenimiento del código.
 
 ## Propuesta 2: Reconocimiento facial para identificación de personas
 
