@@ -147,3 +147,90 @@ Esta clase proporciona una estructura modular y flexible para el juego, permitie
 ## Propuesta 2: Reconocimiento facial para identificación de personas
 
 
+El script que has proporcionado es para un sistema de reconocimiento facial que utiliza machine learning para identificar a personas. El proceso se divide en tres etapas principales: captura de imágenes, entrenamiento del modelo y reconocimiento en tiempo real. A continuación, se detallan las diferentes partes del script:
+
+### 1. Captura de Imágenes (`image_capture`)
+
+Esta función captura imágenes de rostros desde una cámara web y las almacena en un directorio específico. Cada imagen capturada se asocia con un nombre de clase o etiqueta, lo que permite recopilar datos para diferentes personas.
+
+- **Parámetros**:
+  - `class_model_name`: El nombre de la clase o etiqueta para las imágenes capturadas.
+
+- **Proceso**:
+  - Crea un directorio específico para cada persona (si no existe).
+  - Captura imágenes del rostro detectado utilizando el clasificador Haar Cascade.
+  - Guarda las imágenes en el directorio correspondiente.
+
+### 2. Entrenamiento del Modelo (`train_model`)
+
+Esta función entrena un modelo de clasificación de máquina de vectores de soporte (SVM) utilizando el método de Análisis de Componentes Principales (PCA) para la reducción de la dimensionalidad.
+
+- **Proceso**:
+  - Carga las imágenes capturadas, las convierte a escala de grises y las redimensiona a un tamaño estándar.
+  - Divide los datos en conjuntos de entrenamiento y prueba.
+  - Aplica PCA para reducir la dimensionalidad.
+  - Entrena el modelo SVM con los datos transformados.
+  - Evalúa la precisión del modelo y lo devuelve junto con el objeto PCA.
+
+### 3. Reconocimiento en Tiempo Real (`real_time_recognition`)
+
+Esta función utiliza el modelo entrenado y PCA para identificar rostros en tiempo real a través de una cámara web.
+
+- **Parámetros**:
+  - `classifier`: El modelo SVM entrenado.
+  - `pca`: El objeto PCA para la transformación de datos.
+
+- **Proceso**:
+  - Captura imágenes en tiempo real de una cámara web.
+  - Detecta rostros utilizando el clasificador Haar Cascade.
+  - Aplica PCA y el modelo SVM para identificar el rostro.
+  - Muestra el resultado en la ventana de video.
+
+- Este script proporciona un enfoque sencillo pero efectivo para el reconocimiento facial, utilizando técnicas de aprendizaje automático, aunque para un correcto funcionamiento, es crucial tener una buena cantidad de imágenes de cada persona para entrenar eficazmente el modelo.El rendimiento y precisión del modelo pueden variar según la calidad de las imágenes y la cantidad de datos disponibles para cada clase.
+
+Este fragmento de código describe un flujo de trabajo completo para capturar imágenes de un sujeto, entrenar un modelo de reconocimiento facial y luego utilizar ese modelo para el reconocimiento facial en tiempo real. El proceso se divide en tres pasos principales, explicados a continuación:
+
+## Proceso
+### 4. Capturar Imágenes para el Dataset
+```python
+name = 'Antonio'
+image_capture(name)
+```
+- **Descripción**: 
+  - Esta parte del código llama a la función `image_capture` con el nombre 'Antonio'. 
+  - La función capturará imágenes de la persona llamada Antonio utilizando una cámara web y las almacenará en un directorio específico creado para él.
+
+- **Proceso**:
+  - El script abrirá una ventana de captura de video.
+  - Detectará rostros en tiempo real y los enmarcará con un rectángulo verde.
+  - Guardará imágenes del rostro detectado en la carpeta correspondiente a Antonio en el directorio 'Images_class_model'.
+
+### 5. Entrenar el Modelo
+```python
+data_dir = 'Images_class_model'
+classifier, pca = train_model(data_dir)
+```
+- **Descripción**: 
+  - Esta línea establece la variable `data_dir` en el directorio donde se almacenan las imágenes capturadas.
+  - Luego llama a la función `train_model`, pasándole el directorio de datos, para entrenar un modelo de clasificación facial.
+
+- **Proceso**:
+  - La función `train_model` carga todas las imágenes de cada persona en el directorio especificado.
+  - Entrena un modelo SVM utilizando PCA para reducir la dimensionalidad de las imágenes.
+  - Devuelve el clasificador entrenado y el objeto PCA.
+
+### 6. Reconocimiento Facial en Tiempo Real
+```python
+real_time_recognition(classifier, pca)
+```
+- **Descripción**:
+  - Esta línea ejecuta la función `real_time_recognition`, proporcionándole el clasificador SVM y el objeto PCA obtenidos en el paso anterior.
+
+- **Proceso**:
+  - La función abre una ventana de captura de video en tiempo real.
+  - Utiliza el clasificador Haar Cascade para detectar rostros en el video.
+  - Aplica PCA y el modelo SVM para identificar los rostros detectados.
+  - Muestra el nombre del sujeto reconocido en la ventana de video.
+
+### Nota Final
+Este flujo de trabajo es efectivo para la creación de un sistema de reconocimiento facial personalizado. Es importante tener una buena cantidad de imágenes para cada sujeto durante la fase de captura de imágenes para mejorar la precisión del modelo. La efectividad del reconocimiento en tiempo real dependerá de la calidad y diversidad de las imágenes utilizadas para el entrenamiento.
