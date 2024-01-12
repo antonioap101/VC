@@ -1,11 +1,9 @@
-package es.ulpgc.signteach
+package es.ulpgc.signteach.ui.screens
 
-import androidx.activity.result.ActivityResultLauncher
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,7 +15,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.compose.ui.Alignment
@@ -25,6 +22,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import es.ulpgc.signteach.MainActivity
+import es.ulpgc.signteach.R
+import es.ulpgc.signteach.ServerInteraction
 
 @Composable
 fun CameraScreen(activity: MainActivity, serverInteraction: ServerInteraction) {
@@ -74,7 +74,7 @@ fun CameraScreen(activity: MainActivity, serverInteraction: ServerInteraction) {
         Button(
             onClick = {
                 // Llama a la función para enviar la imagen al servidor
-                serverInteraction.sendImageResourceToServer(context, R.drawable.test_image_a, "A")
+                serverInteraction.sendImageResourceToServer(context, R.drawable.test_image_l, "A")
 
             },
             modifier = Modifier.padding(16.dp) // Añade margen al botón

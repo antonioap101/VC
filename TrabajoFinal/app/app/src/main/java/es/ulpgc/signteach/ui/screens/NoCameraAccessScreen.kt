@@ -1,4 +1,4 @@
-package es.ulpgc.signteach
+package es.ulpgc.signteach.ui.screens
 
 import android.Manifest
 import android.app.Activity

@@ -13,11 +13,28 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 
-class ServerInteraction(private val context: Context, private val apiService: ApiService) {
+class ServerInteraction(private val context: Context) {
+
+    // Define la URL base del servidor
+    private val BASE_URL = "http://10.22.146.19:5000"  // Wifi Principal: 10.22.146.19
+    // Wifi Movil: 192.168.194.99
+
+    // Crea una instancia de Retrofit con el cliente HTTP y el convertidor Gson
+    private val retrofit = Retrofit.Builder()
+        .baseUrl(BASE_URL)
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+
+    // Crea la instancia de ApiService utilizando Retrofit
+    private val apiService = retrofit.create(ApiService::class.java)
+
+
     // Función para enviar una imagen almacenada en recursos al servidor
     fun sendImageResourceToServer(
         context: Context,
@@ -25,7 +42,7 @@ class ServerInteraction(private val context: Context, private val apiService: Ap
         targetLetter: String
     ) {
         val imageBitmap = BitmapFactory.decodeResource(context.resources, imageResource)
-        val imageFile = saveBitmapToFile(context, imageBitmap, "test_image_a.jpg")
+        val imageFile = saveBitmapToFile(context, imageBitmap, "test_image.jpg")
 
         // Llama a la función para enviar la imagen al servidor
         sendImageToServer(imageFile, targetLetter)
@@ -54,10 +71,10 @@ class ServerInteraction(private val context: Context, private val apiService: Ap
         val targetLetterPart = targetLetter.toRequestBody("text/plain".toMediaTypeOrNull())
 
         apiService.uploadImage(imagePart, targetLetterPart).enqueue(object :
-            Callback<YourResponseModel> {
+            Callback<ResponseModel> {
             override fun onResponse(
-                call: Call<YourResponseModel>,
-                response: Response<YourResponseModel>
+                call: Call<ResponseModel>,
+                response: Response<ResponseModel>
             ) {
                 if (response.isSuccessful) {
                     val result = response.body()
@@ -66,7 +83,7 @@ class ServerInteraction(private val context: Context, private val apiService: Ap
                         if (result.result) {
                             Log.d("ServerResponse", "Letra correcta detectada.") // Éxito: La letra detectada se corresponde con la de la imagen
                         } else {
-                            Log.d("ServerResponse", "Respuesta del servidor inesperada." )// Fallo:  La letra detectada NO se corresponde con la de la imagen
+                            Log.d("ServerResponse", "Letra incorrecta detectada." )// Fallo:  La letra detectada NO se corresponde con la de la imagen
                         }
                     } else {
                         Log.d("ServerResponse", "Respuesta inesperada (null) del servidor") // El servidor respondió con un resultado inesperado (valor nulo)
@@ -80,7 +97,7 @@ class ServerInteraction(private val context: Context, private val apiService: Ap
                 }
             }
 
-            override fun onFailure(call: Call<YourResponseModel>, t: Throwable) {
+            override fun onFailure(call: Call<ResponseModel>, t: Throwable) {
                 // Manejar errores de red
                 Log.e(
                     "ServerResponse",

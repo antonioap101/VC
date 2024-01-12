@@ -13,5 +13,5 @@ interface ApiService {
     fun uploadImage(
         @Part image: MultipartBody.Part,
         @Part("target_letter") targetLetter: RequestBody
-    ): Call<YourResponseModel>
+    ): Call<ResponseModel>
 }
