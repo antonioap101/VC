@@ -14,4 +14,11 @@ interface ApiService {
         @Part image: MultipartBody.Part,
         @Part("target_letter") targetLetter: RequestBody
     ): Call<ResponseModel>
+
+    @Multipart
+    @POST("/process-video")
+    fun uploadVideo(
+        @Part video: MultipartBody.Part,
+        @Part("target_letter") targetLetter: RequestBody
+    ): Call<ResponseModel>
 }

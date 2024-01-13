@@ -64,7 +64,6 @@ class ServerInteraction(private val context: Context) {
     }
 
     // Define una función para enviar una imagen al servidor
-// Define una función para enviar una imagen al servidor
     private fun sendImageToServer(imageFile: File, targetLetter: String) {
         val requestFile = imageFile.asRequestBody("image/*".toMediaTypeOrNull())
         val imagePart = MultipartBody.Part.createFormData("image", imageFile.name, requestFile)
@@ -102,6 +101,51 @@ class ServerInteraction(private val context: Context) {
                 Log.e(
                     "ServerResponse",
                     "Error de red al enviar la imagen al servidor: ${t.message}"
+                )
+            }
+        })
+    }
+
+    // Método para enviar un vídeo al servidor
+    fun sendVideoToServer(videoFile: File, targetLetter: String) {
+        // Crear un RequestBody para el archivo de vídeo
+        val requestFile = videoFile.asRequestBody("video/mp4".toMediaTypeOrNull())
+        val videoPart = MultipartBody.Part.createFormData("video", videoFile.name, requestFile)
+        val targetLetterPart = targetLetter.toRequestBody("text/plain".toMediaTypeOrNull())
+
+        // Llamar a la función de la API para subir el vídeo
+        apiService.uploadVideo(videoPart, targetLetterPart).enqueue(object : Callback<ResponseModel> {
+            override fun onResponse(
+                call: Call<ResponseModel>,
+                response: Response<ResponseModel>
+            ) {
+                // Manejar la respuesta del servidor
+                if (response.isSuccessful) {
+                    val result = response.body()
+
+                    if (result != null) {
+                        if (result.result) {
+                            Log.d("ServerResponse", "Letra correcta detectada.") // Éxito: La letra detectada se corresponde con la de la imagen
+                        } else {
+                            Log.d("ServerResponse", "Letra incorrecta detectada." )// Fallo:  La letra detectada NO se corresponde con la de la imagen
+                        }
+                    } else {
+                        Log.d("ServerResponse", "Respuesta inesperada (null) del servidor") // El servidor respondió con un resultado inesperado (valor nulo)
+                    }
+                } else {
+                    // Respuesta no exitosa (código de estado HTTP diferente de 200)
+                    Log.e(
+                        "ServerResponse",
+                        "Error en la respuesta del servidor. Código: ${response.code()}"
+                    )
+                }
+            }
+
+            override fun onFailure(call: Call<ResponseModel>, t: Throwable) {
+                // Manejar errores de red o de otra índole
+                Log.e(
+                    "ServerResponse",
+                    "Error de red al enviar el video al servidor: ${t.message}"
                 )
             }
         })
