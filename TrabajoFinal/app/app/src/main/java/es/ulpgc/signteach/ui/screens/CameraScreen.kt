@@ -29,10 +29,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
@@ -116,6 +118,7 @@ fun CameraModeToggle(mode: MutableState<String>) {
 
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CameraScreen(activity: MainActivity, serverInteraction: ServerInteraction) {
     val context = LocalContext.current
@@ -143,6 +146,9 @@ fun CameraScreen(activity: MainActivity, serverInteraction: ServerInteraction) {
     // Job para la corrutina de grabación
     val recordingJob = remember { mutableStateOf<Job?>(null) }
 
+    var score by remember { mutableIntStateOf(0) } // Estado para la puntuación
+
+
     LaunchedEffect(lensFacing) {
         val cameraSelector = CameraSelector.Builder().requireLensFacing(lensFacing).build()
         try {
@@ -160,8 +166,34 @@ fun CameraScreen(activity: MainActivity, serverInteraction: ServerInteraction) {
 
     Column(
         modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        // Barra superior con la puntuación
+        TopAppBar(
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_score), // Reemplaza con el icono que desees
+                        contentDescription = "Puntuación",
+                        tint = Color.Unspecified,
+                        modifier = Modifier.size(32.dp)
+                    )
+                    Text(
+                        text = "$score",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        modifier = Modifier.padding(start = 12.dp) // Espacio entre el icono y el texto
+                    )
+                }
+            },
+
+            modifier = Modifier.fillMaxWidth()
+        )
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -260,6 +292,9 @@ fun CameraScreen(activity: MainActivity, serverInteraction: ServerInteraction) {
                             // Configura el mensaje y el color del fondo en función del resultado del análisis
                             Log.d("ServerResponse", "AnalysisResult: $analysisResult")
 
+                            if (analysisResult == 0) {score +=1}
+                            else if (analysisResult == 1 && score > 0) {score -=1}
+
                             messageAndBackgroundColor = when (analysisResult) {
                                 0 -> Pair("Correcto!", Color.Green.copy(alpha = 0.5f))
                                 1 -> Pair("Incorrecto!", Color.Red.copy(alpha = 0.5f))
@@ -290,6 +325,7 @@ fun CameraScreen(activity: MainActivity, serverInteraction: ServerInteraction) {
                         R.drawable.test_image_l,
                         "A"
                     )
+                    score = 0 // Resetea la puntuación
                 },
                 modifier = Modifier.size(65.dp)
 
@@ -383,11 +419,7 @@ suspend fun recordAndSendVideo(activity: MainActivity,
             Handler(Looper.getMainLooper()).postDelayed({
                 onRecordingStopped()
                 currentRecording.value?.stop()
-
-
             }, 5000) // 5000 ms = 5 segundos
-
-
 
         } catch (e: Exception) {
             // Manejar excepciones
@@ -396,7 +428,6 @@ suspend fun recordAndSendVideo(activity: MainActivity,
 
     return resultDeferred.await()
 }
-
 
 fun createVideoFile(context: Context): File {
     val timeStamp: String = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
