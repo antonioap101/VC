@@ -22,12 +22,12 @@ import androidx.camera.video.Recording
 import androidx.camera.video.VideoCapture
 import androidx.camera.video.VideoRecordEvent
 import androidx.camera.view.PreviewView
-import androidx.camera.view.RotationProvider
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -39,6 +39,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -154,7 +155,6 @@ fun CameraScreen(activity: MainActivity, serverInteraction: ServerInteraction) {
 
     var score by remember { mutableIntStateOf(0) } // Estado para la puntuación
 
-
     LaunchedEffect(lensFacing) {
         val cameraSelector = CameraSelector.Builder().requireLensFacing(lensFacing).build()
         try {
@@ -170,192 +170,202 @@ fun CameraScreen(activity: MainActivity, serverInteraction: ServerInteraction) {
         }
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        // Barra superior con la puntuación
-        TopAppBar(
-            title = {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_score), // Reemplaza con el icono que desees
-                        contentDescription = "Puntuación",
-                        tint = Color.Unspecified,
-                        modifier = Modifier.size(32.dp)
-                    )
-                    Text(
-                        text = "$score",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        modifier = Modifier.padding(start = 12.dp) // Espacio entre el icono y el texto
-                    )
-                }
-            },
-
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .weight(1f)
-        ) {
-            AndroidView(
-                factory = { previewView },
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background((messageAndBackgroundColor.second)), // Fondo semitransparente
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    if (isRecording) {
-                        LinearProgressIndicator(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(8.dp)
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_score),
+                            contentDescription = "Puntuación",
+                            tint = Color.Unspecified,
+                            modifier = Modifier.size(32.dp)
+                        )
+                        Text(
+                            text = "$score",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            modifier = Modifier.padding(start = 12.dp) // Espacio entre el icono y el texto
                         )
                     }
-                    Text(
-                        text = messageAndBackgroundColor.first,
-                        color = Color.White,
-                        fontSize = 20.sp
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        content = { innerPadding ->
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Top
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .weight(1f)
+                        .padding(innerPadding)
+                ) {
+                    AndroidView(
+                        factory = { previewView },
                     )
-                }
-            }
-        }
-
-
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(24.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically,
-
-        ) {
-            IconButton(onClick = {
-                lensFacing = if (lensFacing == CameraSelector.LENS_FACING_FRONT) {
-                    CameraSelector.LENS_FACING_BACK
-                } else {
-                    CameraSelector.LENS_FACING_FRONT
-                }
-            }, modifier = Modifier.size(70.dp)) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_rotate_camera),
-                    contentDescription = "Rotar Cámara",
-                    tint = Color.Unspecified,
-                    modifier = Modifier.size(70.dp)
-                )
-            }
-
-            // Botón para grabar y enviar video
-            Button(
-                onClick = {
-                    if (recordingJob.value?.isActive == true) {
-                        // Si ya hay una grabación en curso, la cancela
-                        recordingJob.value?.cancel()
-                        isRecording = false
-                        messageAndBackgroundColor = Pair("", Color.Transparent)
-                    } else {
-                        selectedLetter = 'A' // selectRandomLetter()
-                        recordingJob.value = CoroutineScope(Dispatchers.Default).launch {
-                            countdownMessage = "Prepárate para $selectedLetter en..."
-                            messageAndBackgroundColor =
-                                Pair(countdownMessage, Color.Blue.copy(alpha = 0.5f))
-                            delay(2000)
-                            for (i in 3 downTo 1) {
-                                countdownMessage = "$i..."
-                                messageAndBackgroundColor =
-                                    Pair(countdownMessage, Color.Blue.copy(alpha = 0.5f))
-                                delay(1000) // Espera 1 segundo
-                            }
-
-                            val analysisResult: Int = if (mode.value == "video") {
-                                recordAndSendVideo(
-                                    activity,
-                                    context,
-                                    serverInteraction,
-                                    previewView,
-                                    lensFacing,
-                                    currentRecording,
-                                    onRecordingStarted = {
-                                        isRecording = true
-                                        messageAndBackgroundColor =
-                                            Pair("Capturando...", Color.Black.copy(0.5f))
-                                    },
-                                    onRecordingStopped = {
-                                        isRecording = false
-                                        messageAndBackgroundColor =
-                                            Pair("Analizando...", Color.Black.copy(0.5f))
-                                    }
-                                )
-                            } else {
-                                takeAndSendPicture(
-                                    activity,
-                                    context,
-                                    serverInteraction,
-                                    previewView,
-                                    lensFacing
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background((messageAndBackgroundColor.second)), // Fondo semitransparente
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            if (isRecording) {
+                                LinearProgressIndicator(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(8.dp)
                                 )
                             }
-                            // Configura el mensaje y el color del fondo en función del resultado del análisis
-                            Log.d("ServerResponse", "AnalysisResult: $analysisResult")
-
-                            if (analysisResult == 0) {score +=1}
-                            else if (analysisResult == 1 && score > 0) {score -=1}
-
-                            messageAndBackgroundColor = when (analysisResult) {
-                                0 -> Pair("Correcto!", Color.Green.copy(alpha = 0.5f))
-                                1 -> Pair("Incorrecto!", Color.Red.copy(alpha = 0.5f))
-                                else -> Pair(
-                                    "Error del servidor!",
-                                    serverErrorColor.copy(alpha = 0.5f)
-                                )
-                            }
-                            delay(2000)
-                            messageAndBackgroundColor = Pair("", Color.Green.copy(alpha = 0f))
-
+                            Text(
+                                text = messageAndBackgroundColor.first,
+                                color = Color.White,
+                                fontSize = 20.sp
+                            )
                         }
                     }
-                },
+                }
 
-                // Cambiar el color del botón según el estado de grabación
-                colors = ButtonDefaults.buttonColors(if (recordingJob.value?.isActive == true) recordingColor else notRecordingColor),
-            ) {
-                Text(text = if (recordingJob.value?.isActive == true) "Cancelar" else "Jugar",
-                    fontSize = 20.sp, fontWeight = FontWeight.Bold)
-            }
-            // Botón para enviar la imagen almacenada en recursos
-            IconButton(
-                onClick = {
-                    // Llama a la función para enviar la imagen al servidor
-                    /* serverInteraction.sendImageResourceToServer(
-                        context,
-                        R.drawable.test_image_l,
-                        "A"
-                    )*/
-                    score = 0 // Resetea la puntuación
-                },
-                modifier = Modifier.size(65.dp)
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(24.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconButton(onClick = {
+                        lensFacing = if (lensFacing == CameraSelector.LENS_FACING_FRONT) {
+                            CameraSelector.LENS_FACING_BACK
+                        } else {
+                            CameraSelector.LENS_FACING_FRONT
+                        }
+                    }, modifier = Modifier.size(70.dp)) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_rotate_camera),
+                            contentDescription = "Rotar Cámara",
+                            tint = Color.Unspecified,
+                            modifier = Modifier.size(70.dp)
+                        )
+                    }
 
-            ) {
-                Icon(painter = painterResource(id = R.drawable.ic_reset),
-                    contentDescription = "Reset/Send Test Image",
-                    tint = Color.Unspecified,
-                    modifier = Modifier.size(65.dp)
-                )
+                    // Botón para grabar y enviar video
+                    Button(
+                        onClick = {
+                            if (recordingJob.value?.isActive == true) {
+                                // Si ya hay una grabación en curso, la cancela
+                                recordingJob.value?.cancel()
+                                isRecording = false
+                                messageAndBackgroundColor = Pair("", Color.Transparent)
+                            } else {
+                                selectedLetter = 'A' // selectRandomLetter()
+                                recordingJob.value = CoroutineScope(Dispatchers.Default).launch {
+                                    countdownMessage = "Prepárate para $selectedLetter en..."
+                                    messageAndBackgroundColor =
+                                        Pair(countdownMessage, Color.Blue.copy(alpha = 0.5f))
+                                    delay(2000)
+                                    for (i in 3 downTo 1) {
+                                        countdownMessage = "$i..."
+                                        messageAndBackgroundColor =
+                                            Pair(countdownMessage, Color.Blue.copy(alpha = 0.5f))
+                                        delay(1000) // Espera 1 segundo
+                                    }
+
+                                    val analysisResult: Int = if (mode.value == "video") {
+                                        recordAndSendVideo(
+                                            activity,
+                                            context,
+                                            serverInteraction,
+                                            previewView,
+                                            lensFacing,
+                                            currentRecording,
+                                            onRecordingStarted = {
+                                                isRecording = true
+                                                messageAndBackgroundColor =
+                                                    Pair("Capturando...", Color.Black.copy(0.5f))
+                                            },
+                                            onRecordingStopped = {
+                                                isRecording = false
+                                                messageAndBackgroundColor =
+                                                    Pair("Analizando...", Color.Black.copy(0.5f))
+                                            }
+                                        )
+                                    } else {
+                                        takeAndSendPicture(
+                                            activity,
+                                            context,
+                                            serverInteraction,
+                                            previewView,
+                                            lensFacing
+                                        )
+                                    }
+                                    // Configura el mensaje y el color del fondo en función del resultado del análisis
+                                    Log.d("ServerResponse", "AnalysisResult: $analysisResult")
+
+                                    if (analysisResult == 0) {
+                                        score += 1
+                                    } else if (analysisResult == 1 && score > 0) {
+                                        score -= 1
+                                    }
+
+                                    messageAndBackgroundColor = when (analysisResult) {
+                                        0 -> Pair("Correcto!", Color.Green.copy(alpha = 0.5f))
+                                        1 -> Pair("Incorrecto!", Color.Red.copy(alpha = 0.5f))
+                                        else -> Pair(
+                                            "Error del servidor!",
+                                            serverErrorColor.copy(alpha = 0.5f)
+                                        )
+                                    }
+                                    delay(2000)
+                                    messageAndBackgroundColor =
+                                        Pair("", Color.Green.copy(alpha = 0f))
+                                }
+                            }
+                        },
+
+                        // Cambiar el color del botón según el estado de grabación
+                        colors = ButtonDefaults.buttonColors(if (recordingJob.value?.isActive == true) recordingColor else notRecordingColor),
+                    ) {
+                        Text(
+                            text = if (recordingJob.value?.isActive == true) "Cancelar" else "Jugar",
+                            fontSize = 20.sp, fontWeight = FontWeight.Bold
+                        )
+                    }
+                    // Botón para enviar la imagen almacenada en recursos
+                    IconButton(
+                        onClick = {
+                            // Llama a la función para enviar la imagen al servidor
+                            /* serverInteraction.sendImageResourceToServer(
+                            context,
+                            R.drawable.test_image_l,
+                            "A"
+                        )*/
+                            score = 0 // Resetea la puntuación
+                        },
+                        modifier = Modifier.size(65.dp)
+
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_reset),
+                            contentDescription = "Reset/Send Test Image",
+                            tint = Color.Unspecified,
+                            modifier = Modifier.size(65.dp)
+                        )
+                    }
+                }
+                CameraModeToggle(mode)
             }
         }
-
-        CameraModeToggle(mode)
-    }
+    )
 }
 
 suspend fun recordAndSendVideo(activity: MainActivity,
