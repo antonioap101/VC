@@ -1,13 +1,18 @@
 package es.ulpgc.signteach.ui.screens
 // Añade importaciones necesarias
-import kotlin.random.Random
 import android.content.Context
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.Surface
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageCapture.OutputFileOptions
+import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
+import androidx.camera.core.resolutionselector.AspectRatioStrategy
+import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.video.FileOutputOptions
 import androidx.camera.video.Quality
@@ -17,6 +22,7 @@ import androidx.camera.video.Recording
 import androidx.camera.video.VideoCapture
 import androidx.camera.video.VideoRecordEvent
 import androidx.camera.view.PreviewView
+import androidx.camera.view.RotationProvider
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -48,7 +54,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -72,6 +77,7 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.random.Random
 
 // Función para seleccionar una letra aleatoria
 private fun  selectRandomLetter(): Char {
@@ -271,24 +277,34 @@ fun CameraScreen(activity: MainActivity, serverInteraction: ServerInteraction) {
                                 delay(1000) // Espera 1 segundo
                             }
 
-                            val analysisResult: Int = recordAndSendVideo(
-                                activity,
-                                context,
-                                serverInteraction,
-                                previewView,
-                                lensFacing,
-                                currentRecording,
-                                onRecordingStarted = {
-                                    isRecording = true
-                                    messageAndBackgroundColor =
-                                        Pair("Capturando...", Color.Black.copy(0.5f))
-                                },
-                                onRecordingStopped = {
-                                    isRecording = false
-                                    messageAndBackgroundColor =
-                                        Pair("Analizando...", Color.Black.copy(0.5f))
-                                }
-                            )
+                            val analysisResult: Int = if (mode.value == "video") {
+                                recordAndSendVideo(
+                                    activity,
+                                    context,
+                                    serverInteraction,
+                                    previewView,
+                                    lensFacing,
+                                    currentRecording,
+                                    onRecordingStarted = {
+                                        isRecording = true
+                                        messageAndBackgroundColor =
+                                            Pair("Capturando...", Color.Black.copy(0.5f))
+                                    },
+                                    onRecordingStopped = {
+                                        isRecording = false
+                                        messageAndBackgroundColor =
+                                            Pair("Analizando...", Color.Black.copy(0.5f))
+                                    }
+                                )
+                            } else {
+                                takeAndSendPicture(
+                                    activity,
+                                    context,
+                                    serverInteraction,
+                                    previewView,
+                                    lensFacing
+                                )
+                            }
                             // Configura el mensaje y el color del fondo en función del resultado del análisis
                             Log.d("ServerResponse", "AnalysisResult: $analysisResult")
 
@@ -320,11 +336,11 @@ fun CameraScreen(activity: MainActivity, serverInteraction: ServerInteraction) {
             IconButton(
                 onClick = {
                     // Llama a la función para enviar la imagen al servidor
-                    serverInteraction.sendImageResourceToServer(
+                    /* serverInteraction.sendImageResourceToServer(
                         context,
                         R.drawable.test_image_l,
                         "A"
-                    )
+                    )*/
                     score = 0 // Resetea la puntuación
                 },
                 modifier = Modifier.size(65.dp)
@@ -438,4 +454,90 @@ fun createVideoFile(context: Context): File {
         storageDir /* directory */
     )
 }
+
+
+
+suspend fun takeAndSendPicture(
+    activity: MainActivity,
+    context: Context,
+    serverInteraction: ServerInteraction,
+    previewView: PreviewView,
+    lensFacing: Int
+): Int {
+    // Creamos una instancia de ImageCapture
+    //val imageCapture = ImageCapture.Builder().build()
+
+    val imageCapture = ImageCapture.Builder()
+        .setResolutionSelector(ResolutionSelector.Builder()
+            .setAspectRatioStrategy(AspectRatioStrategy.RATIO_4_3_FALLBACK_AUTO_STRATEGY)
+            .build())
+        .setTargetRotation(Surface.ROTATION_0)
+        .build()
+
+    val resultDeferred = CompletableDeferred<Int>()
+    val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
+    cameraProviderFuture.addListener({
+        val cameraProvider = cameraProviderFuture.get()
+        val cameraSelector = CameraSelector.Builder().requireLensFacing(lensFacing).build()
+
+        val preview = Preview.Builder().build().also {
+            it.setSurfaceProvider(previewView.surfaceProvider)
+        }
+
+        try {
+            // Desvincula cualquier uso de la cámara en uso
+            cameraProvider.unbindAll()
+
+            // Vincula el uso de la cámara para captura de imagen
+            cameraProvider.bindToLifecycle(
+                activity,
+                cameraSelector,
+                preview,
+                imageCapture
+            )
+
+            // Crear archivo para guardar la imagen
+            val photoFile = createImageFile(context)
+            val outputOptions = OutputFileOptions.Builder(photoFile).build()
+
+            // Tomar la foto y guardarla en el archivo
+            imageCapture.takePicture(
+                outputOptions,
+                ContextCompat.getMainExecutor(context),
+                object : ImageCapture.OnImageSavedCallback {
+                    override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
+                        // La imagen se ha guardado correctamente
+                        CoroutineScope(Dispatchers.IO).launch {
+                            val result = serverInteraction.sendImageToServer(photoFile, "A")
+                            resultDeferred.complete(result)
+                        }
+                    }
+
+                    override fun onError(exception: ImageCaptureException) {
+                        // Manejar el error
+                        resultDeferred.complete(-1)
+                        Log.e("CameraXApp", "Photo capture failed: ${exception.message}", exception)
+                    }
+                }
+            )
+        } catch (exc: Exception) {
+            Log.e("CameraXApp", "Use case binding failed", exc)
+            resultDeferred.complete(-1)
+        }
+    }, ContextCompat.getMainExecutor(context))
+
+    return resultDeferred.await()
+
+}
+
+fun createImageFile(context: Context): File {
+        val timeStamp: String = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val storageDir: File = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)!!
+        return File.createTempFile(
+            "JPEG_${timeStamp}_", // prefix
+            ".jpg", // suffix
+            storageDir // directory
+        )
+}
+
 

@@ -38,7 +38,7 @@ class ServerInteraction(private val context: Context) {
 
 
     // Función para enviar una imagen almacenada en recursos al servidor
-    fun sendImageResourceToServer(
+    suspend fun sendImageResourceToServer(
         context: Context,
         @DrawableRes imageResource: Int,
         targetLetter: String
@@ -66,55 +66,58 @@ class ServerInteraction(private val context: Context) {
     }
 
     // Define una función para enviar una imagen al servidor
-    private fun sendImageToServer(imageFile: File, targetLetter: String) {
-        val requestFile = imageFile.asRequestBody("image/*".toMediaTypeOrNull())
-        val imagePart = MultipartBody.Part.createFormData("image", imageFile.name, requestFile)
-        val targetLetterPart = targetLetter.toRequestBody("text/plain".toMediaTypeOrNull())
+    suspend fun sendImageToServer(imageFile: File, targetLetter: String): Int{
+        return suspendCoroutine { continuation ->
 
-        apiService.uploadImage(imagePart, targetLetterPart).enqueue(object :
-            Callback<ResponseModel> {
-            override fun onResponse(
-                call: Call<ResponseModel>,
-                response: Response<ResponseModel>
-            ) {
-                if (response.isSuccessful) {
-                    val result = response.body()
+            val requestFile = imageFile.asRequestBody("image/*".toMediaTypeOrNull())
+            val imagePart = MultipartBody.Part.createFormData("image", imageFile.name, requestFile)
+            val targetLetterPart = targetLetter.toRequestBody("text/plain".toMediaTypeOrNull())
 
-                    if (result != null) {
-                        if (result.result) {
-                            Log.d(
-                                "ServerResponse",
-                                "Letra correcta detectada."
-                            ) // Éxito: La letra detectada se corresponde con la de la imagen
+            apiService.uploadImage(imagePart, targetLetterPart)
+                .enqueue(object : Callback<ResponseModel> {
+                    override fun onResponse(
+                        call: Call<ResponseModel>,
+                        response: Response<ResponseModel>
+                    ) {
+                        // Manejar la respuesta del servidor
+                        if (response.isSuccessful) {
+                            val result = response.body()
+
+                            if (result != null) {
+                                if (result.result) {
+                                    Log.d("ServerResponse", "Letra correcta detectada.")
+                                    continuation.resume(0) // Éxito: La letra detectada se corresponde con la de la imagen
+                                } else {
+                                    Log.d("ServerResponse", "Letra incorrecta detectada.")
+                                    continuation.resume(1)// Fallo: La letra detectada NO se corresponde con la de la imagen
+                                }
+                            } else {
+                                Log.d(
+                                    "ServerResponse",
+                                    "Respuesta inesperada (null) del servidor"
+                                ) // El servidor respondió con un resultado inesperado (valor nulo)
+                                continuation.resume(2)// El servidor respondió con un resultado inesperado (valor nulo)
+                            }
                         } else {
-                            Log.d(
+                            // Respuesta no exitosa (código de estado HTTP diferente de 200)
+                            Log.e(
                                 "ServerResponse",
-                                "Letra incorrecta detectada."
-                            )// Fallo:  La letra detectada NO se corresponde con la de la imagen
+                                "Error en la respuesta del servidor. Código: ${response.code()}"
+                            )
+                            continuation.resume(3) // Respuesta no exitosa (código de estado HTTP diferente de 200)
                         }
-                    } else {
-                        Log.d(
-                            "ServerResponse",
-                            "Respuesta inesperada (null) del servidor"
-                        ) // El servidor respondió con un resultado inesperado (valor nulo)
                     }
-                } else {
-                    // Respuesta no exitosa (código de estado HTTP diferente de 200)
-                    Log.e(
-                        "ServerResponse",
-                        "Error en la respuesta del servidor. Código: ${response.code()}"
-                    )
-                }
-            }
 
-            override fun onFailure(call: Call<ResponseModel>, t: Throwable) {
-                // Manejar errores de red
-                Log.e(
-                    "ServerResponse",
-                    "Error de red al enviar la imagen al servidor: ${t.message}"
-                )
-            }
-        })
+                    override fun onFailure(call: Call<ResponseModel>, t: Throwable) {
+                        // Manejar errores de red
+                        Log.e(
+                            "ServerResponse",
+                            "Error de red al enviar la imagen al servidor: ${t.message}"
+                        )
+                        continuation.resume(4) // Manejar errores de red
+                    }
+                })
+        }
     }
 
     // Método para enviar un vídeo al servidor
