@@ -18,6 +18,8 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 class ServerInteraction(private val context: Context) {
 
@@ -80,12 +82,21 @@ class ServerInteraction(private val context: Context) {
 
                     if (result != null) {
                         if (result.result) {
-                            Log.d("ServerResponse", "Letra correcta detectada.") // Éxito: La letra detectada se corresponde con la de la imagen
+                            Log.d(
+                                "ServerResponse",
+                                "Letra correcta detectada."
+                            ) // Éxito: La letra detectada se corresponde con la de la imagen
                         } else {
-                            Log.d("ServerResponse", "Letra incorrecta detectada." )// Fallo:  La letra detectada NO se corresponde con la de la imagen
+                            Log.d(
+                                "ServerResponse",
+                                "Letra incorrecta detectada."
+                            )// Fallo:  La letra detectada NO se corresponde con la de la imagen
                         }
                     } else {
-                        Log.d("ServerResponse", "Respuesta inesperada (null) del servidor") // El servidor respondió con un resultado inesperado (valor nulo)
+                        Log.d(
+                            "ServerResponse",
+                            "Respuesta inesperada (null) del servidor"
+                        ) // El servidor respondió con un resultado inesperado (valor nulo)
                     }
                 } else {
                     // Respuesta no exitosa (código de estado HTTP diferente de 200)
@@ -107,47 +118,58 @@ class ServerInteraction(private val context: Context) {
     }
 
     // Método para enviar un vídeo al servidor
-    fun sendVideoToServer(videoFile: File, targetLetter: String) {
-        // Crear un RequestBody para el archivo de vídeo
-        val requestFile = videoFile.asRequestBody("video/mp4".toMediaTypeOrNull())
-        val videoPart = MultipartBody.Part.createFormData("video", videoFile.name, requestFile)
-        val targetLetterPart = targetLetter.toRequestBody("text/plain".toMediaTypeOrNull())
+    suspend fun sendVideoToServer(videoFile: File, targetLetter: String): Int {
+        return suspendCoroutine { continuation ->
+            val requestFile = videoFile.asRequestBody("video/mp4".toMediaTypeOrNull())
+            val videoPart = MultipartBody.Part.createFormData("video", videoFile.name, requestFile)
+            val targetLetterPart = targetLetter.toRequestBody("text/plain".toMediaTypeOrNull())
 
-        // Llamar a la función de la API para subir el vídeo
-        apiService.uploadVideo(videoPart, targetLetterPart).enqueue(object : Callback<ResponseModel> {
-            override fun onResponse(
-                call: Call<ResponseModel>,
-                response: Response<ResponseModel>
-            ) {
-                // Manejar la respuesta del servidor
-                if (response.isSuccessful) {
-                    val result = response.body()
+            // Llamar a la función de la API para subir el vídeo
+            apiService.uploadVideo(videoPart, targetLetterPart)
+                .enqueue(object : Callback<ResponseModel> {
+                    override fun onResponse(
+                        call: Call<ResponseModel>,
+                        response: Response<ResponseModel>
+                    ) {
+                        // Manejar la respuesta del servidor
+                        if (response.isSuccessful) {
+                            val result = response.body()
 
-                    if (result != null) {
-                        if (result.result) {
-                            Log.d("ServerResponse", "Letra correcta detectada.") // Éxito: La letra detectada se corresponde con la de la imagen
+                            if (result != null) {
+                                if (result.result) {
+                                    Log.d("ServerResponse", "Letra correcta detectada.")
+                                    continuation.resume(0) // Éxito: La letra detectada se corresponde con la de la imagen
+                                } else {
+                                    Log.d("ServerResponse", "Letra incorrecta detectada.")
+                                    continuation.resume(1)// Fallo: La letra detectada NO se corresponde con la de la imagen
+                                }
+                            } else {
+                                Log.d(
+                                    "ServerResponse",
+                                    "Respuesta inesperada (null) del servidor"
+                                ) // El servidor respondió con un resultado inesperado (valor nulo)
+                                continuation.resume(2)// El servidor respondió con un resultado inesperado (valor nulo)
+                            }
                         } else {
-                            Log.d("ServerResponse", "Letra incorrecta detectada." )// Fallo:  La letra detectada NO se corresponde con la de la imagen
+                            // Respuesta no exitosa (código de estado HTTP diferente de 200)
+                            Log.e(
+                                "ServerResponse",
+                                "Error en la respuesta del servidor. Código: ${response.code()}"
+                            )
+                            continuation.resume(3) // Respuesta no exitosa (código de estado HTTP diferente de 200)
                         }
-                    } else {
-                        Log.d("ServerResponse", "Respuesta inesperada (null) del servidor") // El servidor respondió con un resultado inesperado (valor nulo)
                     }
-                } else {
-                    // Respuesta no exitosa (código de estado HTTP diferente de 200)
-                    Log.e(
-                        "ServerResponse",
-                        "Error en la respuesta del servidor. Código: ${response.code()}"
-                    )
-                }
-            }
 
-            override fun onFailure(call: Call<ResponseModel>, t: Throwable) {
-                // Manejar errores de red o de otra índole
-                Log.e(
-                    "ServerResponse",
-                    "Error de red al enviar el video al servidor: ${t.message}"
-                )
-            }
-        })
+                    override fun onFailure(call: Call<ResponseModel>, t: Throwable) {
+                        // Manejar errores de red o de otra índole
+                        Log.e(
+                            "ServerResponse",
+                            "Error de red al enviar el video al servidor: ${t.message}"
+                        )
+                        continuation.resume(4) // Manejar errores de red
+                    }
+                })
+        }
     }
 }
+
