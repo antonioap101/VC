@@ -18,13 +18,19 @@ import androidx.camera.video.VideoCapture
 import androidx.camera.video.VideoRecordEvent
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,6 +45,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -49,6 +58,7 @@ import es.ulpgc.signteach.ServerInteraction
 import es.ulpgc.signteach.ui.theme.notRecordingColor
 import es.ulpgc.signteach.ui.theme.recordingColor
 import es.ulpgc.signteach.ui.theme.serverErrorColor
+import es.ulpgc.signteach.ui.theme.toggleCameraRectangleColor
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -68,6 +78,45 @@ private fun  selectRandomLetter(): Char {
 }
 
 @Composable
+fun CameraModeToggle(mode: MutableState<String>) {
+    // Estilos para el botón activo e inactivo
+    val iconSize = 48.dp // Tamaño de los iconos
+
+    Box(
+        modifier = Modifier
+            .padding(0.dp)
+            .background(
+                color = toggleCameraRectangleColor, // Cambia el color de fondo según tus preferencias
+                shape = RoundedCornerShape(32.dp) // Define el radio de los bordes redondeados
+            )
+    ) {
+        Row(modifier = Modifier.padding(2.dp)) {
+            // Botón Modo Foto
+            IconButton(onClick = { mode.value = "photo" }) {
+                Icon(
+                    painter = painterResource(id = if (mode.value == "photo") R.drawable.ic_selected_photo else R.drawable.ic_unselected_photo),
+                    contentDescription = "Modo Foto",
+                    tint = Color.Unspecified,
+                    modifier = Modifier.size(iconSize) // Tamaño del icono
+                )
+            }
+
+            // Botón Modo Video
+            IconButton(onClick = { mode.value = "video" }) {
+                Icon(
+                    painter = painterResource(id = if (mode.value == "video") R.drawable.ic_selected_video else R.drawable.ic_unselected_video),
+                    contentDescription = "Modo Video",
+                    tint = Color.Unspecified,
+                    modifier = Modifier.size(iconSize) // Tamaño del icono
+                )
+            }
+        }
+    }
+}
+
+
+
+@Composable
 fun CameraScreen(activity: MainActivity, serverInteraction: ServerInteraction) {
     val context = LocalContext.current
     val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
@@ -75,6 +124,9 @@ fun CameraScreen(activity: MainActivity, serverInteraction: ServerInteraction) {
     val executor = ContextCompat.getMainExecutor(context)
     val previewView = remember { PreviewView(context) }
     val cameraProvider = cameraProviderFuture.get()
+
+    // Estado para manejar el modo actual (foto o video)
+    val mode = remember { mutableStateOf("photo") } // "photo" o "video"
 
     val currentRecording = remember { mutableStateOf<Recording?>(null) }
 
@@ -143,81 +195,114 @@ fun CameraScreen(activity: MainActivity, serverInteraction: ServerInteraction) {
             }
         }
 
-        Button(onClick = {
-            lensFacing = if (lensFacing == CameraSelector.LENS_FACING_FRONT) {
-                CameraSelector.LENS_FACING_BACK
-            } else {
-                CameraSelector.LENS_FACING_FRONT
-            }
-        }) {
-            Text(text = "Cambiar Cámara")
-        }
 
-        // Botón para enviar la imagen almacenada en recursos
-        Button(
-            onClick = {
-                // Llama a la función para enviar la imagen al servidor
-                serverInteraction.sendImageResourceToServer(context, R.drawable.test_image_l, "A")
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(24.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically,
 
-            },
-            modifier = Modifier.padding(16.dp) // Añade margen al botón
         ) {
-            Text(text = "Enviar Imagen de Test")
-        }
-
-        // Botón para grabar y enviar video
-        Button(
-            onClick = {
-                if (recordingJob.value?.isActive == true) {
-                    // Si ya hay una grabación en curso, la cancela
-                    recordingJob.value?.cancel()
-                    isRecording = false
-                    messageAndBackgroundColor = Pair("", Color.Transparent)
+            IconButton(onClick = {
+                lensFacing = if (lensFacing == CameraSelector.LENS_FACING_FRONT) {
+                    CameraSelector.LENS_FACING_BACK
                 } else {
-                    selectedLetter = 'A' // selectRandomLetter()
-                    recordingJob.value = CoroutineScope(Dispatchers.Default).launch {
-                        countdownMessage = "Prepárate para $selectedLetter en..."
-                        messageAndBackgroundColor = Pair(countdownMessage, Color.Blue.copy(alpha = 0.5f))
-                        delay(2000)
-                        for (i in 3 downTo 1) {
-                            countdownMessage = "$i..."
-                            messageAndBackgroundColor = Pair(countdownMessage, Color.Blue.copy(alpha = 0.5f))
-                            delay(1000) // Espera 1 segundo
-                        }
-
-                        val analysisResult: Int = recordAndSendVideo(
-                            activity,
-                            context,
-                            serverInteraction,
-                            previewView,
-                            lensFacing,
-                            currentRecording,
-                            onRecordingStarted = { isRecording = true
-                                                 messageAndBackgroundColor = Pair("Capturando...", Color.Black.copy(0.5f))
-                                                 },
-                            onRecordingStopped = { isRecording = false
-                                                messageAndBackgroundColor = Pair("Analizando...", Color.Black.copy(0.5f))}
-                        )
-                        // Configura el mensaje y el color del fondo en función del resultado del análisis
-                        Log.d("ServerResponse", "AnalysisResult: $analysisResult")
-
-                        messageAndBackgroundColor = when (analysisResult) {
-                            0 -> Pair("Correcto!", Color.Green.copy(alpha = 0.5f))
-                            1 -> Pair("Incorrecto!", Color.Red.copy(alpha = 0.5f))
-                            else -> Pair("Error del servidor!", serverErrorColor.copy(alpha = 0.5f))
-                        }
-                        delay(2000)
-                        messageAndBackgroundColor = Pair("", Color.Green.copy(alpha = 0f))
-
-                    }
+                    CameraSelector.LENS_FACING_FRONT
                 }
-            },
-            modifier = Modifier.padding(16.dp),
-            // Cambiar el color del botón según el estado de grabación
-            colors = ButtonDefaults.buttonColors(if (recordingJob.value?.isActive == true) recordingColor else notRecordingColor),
-        ) {
-            Text(text = if (recordingJob.value?.isActive == true) "Cancelar Grabación" else "Grabar y Enviar Vídeo")
+            }, modifier = Modifier.size(70.dp)) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_rotate_camera),
+                    contentDescription = "Rotar Cámara",
+                    tint = Color.Unspecified,
+                    modifier = Modifier.size(70.dp)
+                )
+            }
+
+            // Botón para grabar y enviar video
+            Button(
+                onClick = {
+                    if (recordingJob.value?.isActive == true) {
+                        // Si ya hay una grabación en curso, la cancela
+                        recordingJob.value?.cancel()
+                        isRecording = false
+                        messageAndBackgroundColor = Pair("", Color.Transparent)
+                    } else {
+                        selectedLetter = 'A' // selectRandomLetter()
+                        recordingJob.value = CoroutineScope(Dispatchers.Default).launch {
+                            countdownMessage = "Prepárate para $selectedLetter en..."
+                            messageAndBackgroundColor =
+                                Pair(countdownMessage, Color.Blue.copy(alpha = 0.5f))
+                            delay(2000)
+                            for (i in 3 downTo 1) {
+                                countdownMessage = "$i..."
+                                messageAndBackgroundColor =
+                                    Pair(countdownMessage, Color.Blue.copy(alpha = 0.5f))
+                                delay(1000) // Espera 1 segundo
+                            }
+
+                            val analysisResult: Int = recordAndSendVideo(
+                                activity,
+                                context,
+                                serverInteraction,
+                                previewView,
+                                lensFacing,
+                                currentRecording,
+                                onRecordingStarted = {
+                                    isRecording = true
+                                    messageAndBackgroundColor =
+                                        Pair("Capturando...", Color.Black.copy(0.5f))
+                                },
+                                onRecordingStopped = {
+                                    isRecording = false
+                                    messageAndBackgroundColor =
+                                        Pair("Analizando...", Color.Black.copy(0.5f))
+                                }
+                            )
+                            // Configura el mensaje y el color del fondo en función del resultado del análisis
+                            Log.d("ServerResponse", "AnalysisResult: $analysisResult")
+
+                            messageAndBackgroundColor = when (analysisResult) {
+                                0 -> Pair("Correcto!", Color.Green.copy(alpha = 0.5f))
+                                1 -> Pair("Incorrecto!", Color.Red.copy(alpha = 0.5f))
+                                else -> Pair(
+                                    "Error del servidor!",
+                                    serverErrorColor.copy(alpha = 0.5f)
+                                )
+                            }
+                            delay(2000)
+                            messageAndBackgroundColor = Pair("", Color.Green.copy(alpha = 0f))
+
+                        }
+                    }
+                },
+
+                // Cambiar el color del botón según el estado de grabación
+                colors = ButtonDefaults.buttonColors(if (recordingJob.value?.isActive == true) recordingColor else notRecordingColor),
+            ) {
+                Text(text = if (recordingJob.value?.isActive == true) "Cancelar" else "Jugar",
+                    fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            }
+            // Botón para enviar la imagen almacenada en recursos
+            IconButton(
+                onClick = {
+                    // Llama a la función para enviar la imagen al servidor
+                    serverInteraction.sendImageResourceToServer(
+                        context,
+                        R.drawable.test_image_l,
+                        "A"
+                    )
+                },
+                modifier = Modifier.size(65.dp)
+
+            ) {
+                Icon(painter = painterResource(id = R.drawable.ic_reset),
+                    contentDescription = "Reset/Send Test Image",
+                    tint = Color.Unspecified,
+                    modifier = Modifier.size(65.dp)
+                )
+            }
         }
+
+        CameraModeToggle(mode)
     }
 }
 
