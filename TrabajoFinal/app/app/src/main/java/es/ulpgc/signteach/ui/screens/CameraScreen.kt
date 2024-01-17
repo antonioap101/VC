@@ -80,8 +80,9 @@ import java.util.Locale
 import kotlin.random.Random
 
 // Función para seleccionar una letra aleatoria
-private fun  selectRandomLetter(): Char {
-    val letters = ('A'..'Z').toList()
+private fun selectRandomLetter(): String {
+    // val letters = ('A'..'Z').map { it.toString() } // Puedes usar esto si prefieres generar la lista de letras automáticamente
+    val letters = listOf("A", "B", "C", "D", "O", "K", "H", "G", "L")
     return letters[Random.nextInt(letters.size)]
 }
 
@@ -146,7 +147,7 @@ fun CameraScreen(activity: MainActivity, serverInteraction: ServerInteraction) {
     var messageAndBackgroundColor by remember { mutableStateOf<Pair<String, Color>>(Pair("", Color.Black.copy(alpha = 0f))) }
 
     // Estado para mantener la letra seleccionada y el mensaje de cuenta regresiva
-    var selectedLetter by remember { mutableStateOf('A') }
+    var selectedLetter by remember { mutableStateOf("A") }
     var countdownMessage by remember { mutableStateOf("") }
 
     // Job para la corrutina de grabación
@@ -266,7 +267,7 @@ fun CameraScreen(activity: MainActivity, serverInteraction: ServerInteraction) {
                                 isRecording = false
                                 messageAndBackgroundColor = Pair("", Color.Transparent)
                             } else {
-                                selectedLetter = 'A' // selectRandomLetter()
+                                selectedLetter = selectRandomLetter()
                                 recordingJob.value = CoroutineScope(Dispatchers.Default).launch {
                                     countdownMessage = "Prepárate para $selectedLetter en..."
                                     messageAndBackgroundColor =
@@ -296,7 +297,8 @@ fun CameraScreen(activity: MainActivity, serverInteraction: ServerInteraction) {
                                                 isRecording = false
                                                 messageAndBackgroundColor =
                                                     Pair("Analizando...", Color.Black.copy(0.5f))
-                                            }
+                                            },
+                                            selectedLetter
                                         )
                                     } else {
                                         takeAndSendPicture(
@@ -304,7 +306,8 @@ fun CameraScreen(activity: MainActivity, serverInteraction: ServerInteraction) {
                                             context,
                                             serverInteraction,
                                             previewView,
-                                            lensFacing
+                                            lensFacing,
+                                            selectedLetter
                                         )
                                     }
                                     // Configura el mensaje y el color del fondo en función del resultado del análisis
@@ -367,14 +370,17 @@ fun CameraScreen(activity: MainActivity, serverInteraction: ServerInteraction) {
     )
 }
 
-suspend fun recordAndSendVideo(activity: MainActivity,
-                       context: Context,
-                       serverInteraction: ServerInteraction,
-                       previewView: PreviewView,
-                       lensFacing: Int,
-                       currentRecording: MutableState<Recording?>,
-                       onRecordingStarted: () -> Unit,
-                       onRecordingStopped: () -> Unit): Int {
+suspend fun recordAndSendVideo(
+    activity: MainActivity,
+    context: Context,
+    serverInteraction: ServerInteraction,
+    previewView: PreviewView,
+    lensFacing: Int,
+    currentRecording: MutableState<Recording?>,
+    onRecordingStarted: () -> Unit,
+    onRecordingStopped: () -> Unit,
+    selectedLetter: String
+): Int {
 
 
     val resultDeferred = CompletableDeferred<Int>()
@@ -423,7 +429,7 @@ suspend fun recordAndSendVideo(activity: MainActivity,
                             CoroutineScope(Dispatchers.Main).launch {
                                 Log.d("RecorderMsg: ", "Vídeo grabado. Enviando....")
                                 val result = withContext(Dispatchers.IO) {
-                                    serverInteraction.sendVideoToServer(videoFile, "A")
+                                    serverInteraction.sendVideoToServer(videoFile, selectedLetter)
                                 }
                                 Log.d("ServerResponse", "result = {$result}")
                                 resultDeferred.complete(result)
@@ -471,7 +477,8 @@ suspend fun takeAndSendPicture(
     context: Context,
     serverInteraction: ServerInteraction,
     previewView: PreviewView,
-    lensFacing: Int
+    lensFacing: Int,
+    selectedLetter: String
 ): Int {
     // Creamos una instancia de ImageCapture
     //val imageCapture = ImageCapture.Builder().build()
@@ -517,7 +524,7 @@ suspend fun takeAndSendPicture(
                     override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
                         // La imagen se ha guardado correctamente
                         CoroutineScope(Dispatchers.IO).launch {
-                            val result = serverInteraction.sendImageToServer(photoFile, "A")
+                            val result = serverInteraction.sendImageToServer(photoFile, selectedLetter)
                             resultDeferred.complete(result)
                         }
                     }
