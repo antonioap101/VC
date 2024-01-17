@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SignTeach - Aprende Lenguaje de Signos</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style/css/styles.css') }}">
+</head>
+<body>
+    <header class="header">
+        <div class="logo">
+            <img src="{{ url_for('static', filename='style/images/AppLogo.png') }}" alt="App Logo" class="app-logo">
+            <h1>SignTeach</h1>
+        </div>
+    </header>
+    <main class="main-container">
+        <h1>Aprende Lenguaje de Signos</h1>
+        <p>Bienvenido a SignTeach, tu plataforma para aprender el lenguaje de signos de manera fácil y divertida.</p>
+        <a href="#" class="cta-button">Descarga la app</a>
+        <a href="#" class="cta-button">Detectar Online</a>
+        <div class="features">
+            <div class="feature">
+                <img src="{{ url_for('static', filename='style/images/interactive-lessons.png') }}" alt="Interactive Lessons" >
+                <h2>Lecciones Interactivas</h2>
+                <p>Accede a lecciones interactivas que te ayudarán a dominar el lenguaje de signos.</p>
+            </div>
+            <div class="feature">
+                <img src="{{ url_for('static', filename='style/images/real-time-detection.jpg') }}" alt="Real-Time-Detection" >
+                <h2>Detección en Tiempo Real</h2>
+                <p>Practica con situaciones de la vida real para mejorar tus habilidades de comunicación.</p>
+            </div>
+            <div class="feature">
+                <img src="{{ url_for('static', filename='style/images/community.png') }}" alt="App Logo">
+                <h2>Comunidad</h2>
+                <p>Únete a nuestra comunidad de estudiantes y comparte tus experiencias y avances.</p>
+            </div>
+        </div>
+    </main>
+    <footer class="footer">
+        <p>&copy; 2024 SignTeach. Todos los derechos reservados.</p>
+        <div class="footer-author">
+            <p>Autor: Antonio Aparicio González</p>
+            <p>Autor: Emilio Martel Díaz</p>
+        </div>
+    </footer>
+</body>
+</html>
